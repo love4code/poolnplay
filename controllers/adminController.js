@@ -251,7 +251,20 @@ exports.uploadMedia = [
         uploadedMedia.push(media);
       }
       
-      res.json({ success: true, media: uploadedMedia });
+      // Convert media to JSON with virtuals (data URLs)
+      const mediaData = uploadedMedia.map(m => ({
+        _id: m._id,
+        originalName: m.originalName,
+        filename: m.filename,
+        thumbnailDataUrl: m.thumbnailDataUrl,
+        mediumDataUrl: m.mediumDataUrl,
+        largeDataUrl: m.largeDataUrl,
+        width: m.width,
+        height: m.height,
+        createdAt: m.createdAt,
+      }));
+      
+      res.json({ success: true, media: mediaData });
     } catch (error) {
       console.error('Media upload error:', error);
       res.status(500).json({ success: false, message: 'Error uploading media' });

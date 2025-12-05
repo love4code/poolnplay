@@ -43,59 +43,269 @@
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label class="form-label">Select Images (up to 10)</label>
-                        <input type="file" name="images" class="form-control" multiple accept="image/*" required>
+                        <input type="file" name="images" id="fileInput" class="form-control" multiple accept="image/*" required>
                         <small class="text-muted">Images will be automatically compressed and resized.</small>
                     </div>
                 </form>
+                
+                <!-- Progress Section -->
+                <div id="uploadProgressSection" style="display: none;">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span id="uploadStatus">Preparing upload...</span>
+                            <span id="uploadPercentage">0%</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- File List with Individual Progress -->
+                    <div id="fileProgressList" class="mb-3"></div>
+                    
+                    <!-- Preview of Uploaded Images -->
+                    <div id="uploadedPreview" class="row g-2 mt-3"></div>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="uploadImages()">Upload</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelBtn" onclick="cancelUpload()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadImages()" id="uploadBtn">Upload</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-async function uploadImages() {
+let uploadInProgress = false;
+
+function uploadImages() {
+    if (uploadInProgress) return;
+    
     const form = document.getElementById('uploadForm');
-    const formData = new FormData(form);
-    const files = form.querySelector('input[type="file"]').files;
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
     
     if (files.length === 0) {
         alert('Please select at least one image.');
         return;
     }
     
-    for (let file of files) {
-        formData.append('images', file);
-    }
+    uploadInProgress = true;
+    const uploadBtn = document.getElementById('uploadBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const progressSection = document.getElementById('uploadProgressSection');
+    const fileProgressList = document.getElementById('fileProgressList');
+    const uploadedPreview = document.getElementById('uploadedPreview');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const uploadPercentage = document.getElementById('uploadPercentage');
+    const progressBar = document.getElementById('uploadProgressBar');
     
-    const uploadBtn = event.target;
+    // Reset UI
     uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Uploading...';
+    cancelBtn.disabled = true;
+    progressSection.style.display = 'block';
+    fileProgressList.innerHTML = '';
+    uploadedPreview.innerHTML = '';
+    progressBar.style.width = '0%';
+    progressBar.setAttribute('aria-valuenow', '0');
+    uploadPercentage.textContent = '0%';
+    uploadStatus.textContent = 'Uploading...';
     
-    try {
-        const response = await fetch('/admin/media/upload', {
-            method: 'POST',
-            body: formData,
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showAlert('Images uploaded successfully!', 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showAlert(result.message || 'Upload failed', 'danger');
+    // Create file list with progress indicators
+    const fileList = Array.from(files);
+    fileList.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'mb-2';
+        fileItem.id = `file-${index}`;
+        fileItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small text-truncate" style="max-width: 60%;" title="${file.name}">${file.name}</span>
+                <span class="small" id="file-progress-${index}">0%</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar" id="file-bar-${index}" role="progressbar" style="width: 0%"></div>
+            </div>
+        `;
+        fileProgressList.appendChild(fileItem);
+    });
+    
+    // Prepare FormData
+    const formData = new FormData();
+    fileList.forEach(file => {
+        formData.append('images', file);
+    });
+    
+    // Use XMLHttpRequest for progress tracking
+    const xhr = new XMLHttpRequest();
+    
+    // Track upload progress
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percentComplete + '%';
+            progressBar.setAttribute('aria-valuenow', percentComplete);
+            uploadPercentage.textContent = percentComplete + '%';
+            
+            // Estimate individual file progress (rough estimate)
+            const filesPerPercent = 100 / fileList.length;
+            fileList.forEach((file, index) => {
+                const filePercent = Math.min(100, Math.round((percentComplete / fileList.length) + (index * filesPerPercent)));
+                const fileBar = document.getElementById(`file-bar-${index}`);
+                const fileProgress = document.getElementById(`file-progress-${index}`);
+                if (fileBar && fileProgress) {
+                    fileBar.style.width = filePercent + '%';
+                    fileProgress.textContent = filePercent + '%';
+                }
+            });
         }
-    } catch (error) {
-        showAlert('Error uploading images', 'danger');
-    } finally {
+    });
+    
+    // Handle completion
+    xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+            try {
+                const result = JSON.parse(xhr.responseText);
+                if (result.success) {
+                    uploadStatus.textContent = 'Upload complete!';
+                    progressBar.classList.remove('progress-bar-animated');
+                    progressBar.classList.add('bg-success');
+                    
+                    // Display uploaded images
+                    if (result.media && result.media.length > 0) {
+                        result.media.forEach((mediaItem) => {
+                            const previewCol = document.createElement('div');
+                            previewCol.className = 'col-md-3';
+                            previewCol.innerHTML = `
+                                <div class="card">
+                                    <img src="${mediaItem.thumbnailDataUrl}" 
+                                         class="card-img-top" 
+                                         alt="${mediaItem.originalName}" 
+                                         style="height: 100px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <p class="card-text small text-truncate" title="${mediaItem.originalName}">${mediaItem.originalName}</p>
+                                    </div>
+                                </div>
+                            `;
+                            uploadedPreview.appendChild(previewCol);
+                        });
+                    }
+                    
+                    // Update all file progress to 100%
+                    fileList.forEach((file, index) => {
+                        const fileBar = document.getElementById(`file-bar-${index}`);
+                        const fileProgress = document.getElementById(`file-progress-${index}`);
+                        if (fileBar && fileProgress) {
+                            fileBar.style.width = '100%';
+                            fileBar.classList.add('bg-success');
+                            fileProgress.textContent = '100%';
+                        }
+                    });
+                    
+                    showAlert('Images uploaded successfully!', 'success');
+                    
+                    // Add uploaded images to the main grid dynamically
+                    if (result.media && result.media.length > 0) {
+                        const mediaGrid = document.getElementById('mediaGrid');
+                        const emptyMessage = mediaGrid.querySelector('.col-12 p.text-muted');
+                        if (emptyMessage) {
+                            emptyMessage.remove();
+                        }
+                        
+                        result.media.forEach((mediaItem) => {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-3';
+                            col.innerHTML = `
+                                <div class="card">
+                                    <img src="${mediaItem.thumbnailDataUrl}" 
+                                         class="card-img-top" 
+                                         alt="${mediaItem.originalName}" 
+                                         style="height: 200px; object-fit: cover;">
+                                    <div class="card-body">
+                                        <p class="card-text small text-truncate" title="${mediaItem.originalName}">${mediaItem.originalName}</p>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteMedia('${mediaItem._id}', '${mediaItem.originalName.replace(/'/g, "\\'")}')">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            mediaGrid.appendChild(col);
+                        });
+                    }
+                    
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error(result.message || 'Upload failed');
+                }
+            } catch (error) {
+                uploadStatus.textContent = 'Error processing response';
+                showAlert(error.message || 'Upload failed', 'danger');
+            }
+        } else {
+            uploadStatus.textContent = 'Upload failed';
+            showAlert('Error uploading images. Status: ' + xhr.status, 'danger');
+        }
+        
         uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload';
+        cancelBtn.disabled = false;
+        uploadInProgress = false;
+    });
+    
+    // Handle errors
+    xhr.addEventListener('error', () => {
+        uploadStatus.textContent = 'Upload error';
+        progressBar.classList.remove('progress-bar-animated');
+        progressBar.classList.add('bg-danger');
+        showAlert('Error uploading images', 'danger');
+        uploadBtn.disabled = false;
+        cancelBtn.disabled = false;
+        uploadInProgress = false;
+    });
+    
+    // Handle abort
+    xhr.addEventListener('abort', () => {
+        uploadStatus.textContent = 'Upload cancelled';
+        progressBar.classList.remove('progress-bar-animated');
+        showAlert('Upload cancelled', 'warning');
+        uploadBtn.disabled = false;
+        cancelBtn.disabled = false;
+        uploadInProgress = false;
+    });
+    
+    // Send request
+    xhr.open('POST', '/admin/media/upload');
+    xhr.send(formData);
+    
+    // Store xhr for potential cancellation
+    window.currentUpload = xhr;
+}
+
+function cancelUpload() {
+    if (window.currentUpload && uploadInProgress) {
+        window.currentUpload.abort();
+        uploadInProgress = false;
     }
 }
+
+// Reset modal when closed
+document.getElementById('uploadModal').addEventListener('hidden.bs.modal', function() {
+    if (window.currentUpload && uploadInProgress) {
+        window.currentUpload.abort();
+    }
+    uploadInProgress = false;
+    document.getElementById('uploadProgressSection').style.display = 'none';
+    document.getElementById('uploadForm').reset();
+    document.getElementById('uploadBtn').disabled = false;
+    document.getElementById('cancelBtn').disabled = false;
+    window.currentUpload = null;
+});
 
 async function deleteMedia(id, name) {
     if (!confirmDelete(name)) return;
