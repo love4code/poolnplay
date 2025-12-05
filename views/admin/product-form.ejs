@@ -27,17 +27,41 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Featured Image</label>
-                                <select name="featuredImage" class="form-select">
-                                    <option value="">No image</option>
-                                    <% if (media && media.length > 0) { %>
-                                        <% media.forEach(item => { %>
-                                            <option value="<%= item._id %>" 
-                                                <%= typeof product !== 'undefined' && product && product.featuredImage && product.featuredImage._id.toString() === item._id.toString() ? 'selected' : '' %>>
-                                                <%= item.originalName %>
-                                            </option>
-                                        <% }); %>
-                                    <% } %>
-                                </select>
+                                <div class="media-picker-container">
+                                    <!-- Hidden input to store selected image ID -->
+                                    <input type="hidden" name="featuredImage" id="featuredImageInput" 
+                                           value="<%= typeof product !== 'undefined' && product && product.featuredImage ? product.featuredImage._id : '' %>">
+                                    
+                                    <!-- Preview and Select Button -->
+                                    <div class="media-picker-trigger border rounded p-3 d-flex align-items-center" 
+                                         style="cursor: pointer; min-height: 120px;" 
+                                         data-bs-toggle="modal" 
+                                         data-bs-target="#mediaPickerModal">
+                                        <div id="selectedImagePreview" class="me-3" style="width: 100px; height: 100px; overflow: hidden; border-radius: 4px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                                            <% if (typeof product !== 'undefined' && product && product.featuredImage && product.featuredImage.thumbnailDataUrl) { %>
+                                                <img src="<%= product.featuredImage.thumbnailDataUrl %>" 
+                                                     alt="Selected image" 
+                                                     style="width: 100%; height: 100%; object-fit: cover;">
+                                            <% } else { %>
+                                                <i class="bi bi-image" style="font-size: 2rem; color: #ccc;"></i>
+                                            <% } %>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold" id="selectedImageName">
+                                                <% if (typeof product !== 'undefined' && product && product.featuredImage) { %>
+                                                    <%= product.featuredImage.originalName || 'No image selected' %>
+                                                <% } else { %>
+                                                    No image selected
+                                                <% } %>
+                                            </div>
+                                            <small class="text-muted">Click to select an image</small>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="clearImageBtn" 
+                                                style="<%= typeof product !== 'undefined' && product && product.featuredImage ? '' : 'display: none;' %>">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -81,6 +105,242 @@
         </div>
     </div>
 </form>
+
+<!-- Media Picker Modal -->
+<div class="modal fade" id="mediaPickerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Featured Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <input type="text" 
+                           class="form-control" 
+                           id="mediaSearchInput" 
+                           placeholder="Search images by name...">
+                </div>
+                
+                <!-- Media Grid -->
+                <div class="media-library-grid" style="max-height: 500px; overflow-y: auto;">
+                    <div class="row g-2" id="mediaGridContainer">
+                        <!-- No image option -->
+                        <div class="col-md-3 col-sm-4 col-6">
+                            <div class="media-item card h-100 <%= typeof product !== 'undefined' && product && product.featuredImage ? '' : 'border-primary' %>" 
+                                 data-media-id="" 
+                                 style="cursor: pointer; transition: all 0.2s;">
+                                <div class="card-body text-center p-3" style="min-height: 120px; display: flex; align-items: center; justify-content: center;">
+                                    <div>
+                                        <i class="bi bi-x-circle" style="font-size: 2rem; color: #6c757d;"></i>
+                                        <div class="small mt-2">No Image</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Media items -->
+                        <% if (media && media.length > 0) { %>
+                            <% media.forEach(item => { %>
+                                <div class="col-md-3 col-sm-4 col-6 media-item-wrapper">
+                                    <div class="media-item card h-100 <%= typeof product !== 'undefined' && product && product.featuredImage && product.featuredImage._id.toString() === item._id.toString() ? 'border-primary border-2' : '' %>" 
+                                         data-media-id="<%= item._id %>" 
+                                         data-media-name="<%= item.originalName.toLowerCase() %>"
+                                         style="cursor: pointer; transition: all 0.2s;">
+                                        <img src="<%= item.thumbnailDataUrl %>" 
+                                             class="card-img-top" 
+                                             alt="<%= item.originalName %>" 
+                                             style="height: 120px; object-fit: cover;">
+                                        <div class="card-body p-2">
+                                            <p class="card-text small text-truncate mb-0" title="<%= item.originalName %>">
+                                                <%= item.originalName %>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="col-12">
+                                <p class="text-muted text-center">No media available. Upload images in the Media Library first.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmMediaSelection">Select</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedMediaId = '<%= typeof product !== 'undefined' && product && product.featuredImage ? product.featuredImage._id : "" %>';
+let selectedMediaData = null;
+
+// Store media data for preview
+const mediaData = {};
+<% if (typeof product !== 'undefined' && product && product.featuredImage) { %>
+mediaData['<%= product.featuredImage._id %>'] = {
+    id: '<%= product.featuredImage._id %>',
+    name: '<%= product.featuredImage.originalName.replace(/'/g, "\\'") %>',
+    thumbnail: '<%= product.featuredImage.thumbnailDataUrl %>'
+};
+<% } %>
+<% if (media && media.length > 0) { %>
+    <% media.forEach(item => { %>
+mediaData['<%= item._id %>'] = {
+    id: '<%= item._id %>',
+    name: '<%= item.originalName.replace(/'/g, "\\'") %>',
+    thumbnail: '<%= item.thumbnailDataUrl %>'
+};
+    <% }); %>
+<% } %>
+
+// Handle media item click
+document.addEventListener('DOMContentLoaded', function() {
+    const mediaItems = document.querySelectorAll('.media-item');
+    const confirmBtn = document.getElementById('confirmMediaSelection');
+    const clearBtn = document.getElementById('clearImageBtn');
+    const searchInput = document.getElementById('mediaSearchInput');
+    
+    // Click handler for media items
+    mediaItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Remove previous selection
+            mediaItems.forEach(i => {
+                i.classList.remove('border-primary', 'border-2');
+            });
+            
+            // Add selection to clicked item
+            this.classList.add('border-primary', 'border-2');
+            
+            selectedMediaId = this.getAttribute('data-media-id') || '';
+            selectedMediaData = selectedMediaId && mediaData[selectedMediaId] ? mediaData[selectedMediaId] : null;
+        });
+    });
+    
+    // Confirm selection
+    confirmBtn.addEventListener('click', function() {
+        const hiddenInput = document.getElementById('featuredImageInput');
+        const previewDiv = document.getElementById('selectedImagePreview');
+        const nameDiv = document.getElementById('selectedImageName');
+        
+        hiddenInput.value = selectedMediaId || '';
+        
+        if (selectedMediaId && selectedMediaData) {
+            previewDiv.innerHTML = `<img src="${selectedMediaData.thumbnail}" alt="Selected image" style="width: 100%; height: 100%; object-fit: cover;">`;
+            nameDiv.textContent = selectedMediaData.name;
+            clearBtn.style.display = 'block';
+        } else {
+            previewDiv.innerHTML = '<i class="bi bi-image" style="font-size: 2rem; color: #ccc;"></i>';
+            nameDiv.textContent = 'No image selected';
+            clearBtn.style.display = 'none';
+        }
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('mediaPickerModal'));
+        if (modal) {
+            modal.hide();
+        }
+    });
+    
+    // Clear image button
+    clearBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const hiddenInput = document.getElementById('featuredImageInput');
+        const previewDiv = document.getElementById('selectedImagePreview');
+        const nameDiv = document.getElementById('selectedImageName');
+        
+        hiddenInput.value = '';
+        previewDiv.innerHTML = '<i class="bi bi-image" style="font-size: 2rem; color: #ccc;"></i>';
+        nameDiv.textContent = 'No image selected';
+        clearBtn.style.display = 'none';
+        selectedMediaId = '';
+        selectedMediaData = null;
+    });
+    
+    // Search functionality
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const mediaWrappers = document.querySelectorAll('.media-item-wrapper');
+        
+        mediaWrappers.forEach(wrapper => {
+            const mediaItem = wrapper.querySelector('.media-item');
+            const mediaName = mediaItem.getAttribute('data-media-name') || '';
+            
+            if (mediaName.includes(searchTerm)) {
+                wrapper.style.display = '';
+            } else {
+                wrapper.style.display = 'none';
+            }
+        });
+        
+        // Also show/hide "No image" option
+        const noImageItem = document.querySelector('.media-item[data-media-id=""]');
+        if (noImageItem) {
+            const noImageWrapper = noImageItem.closest('.col-md-3');
+            if (noImageWrapper) {
+                noImageWrapper.style.display = searchTerm === '' ? '' : 'none';
+            }
+        }
+    });
+    
+    // Reset selection when modal is opened
+    document.getElementById('mediaPickerModal').addEventListener('show.bs.modal', function() {
+        // Reset to current selection
+        mediaItems.forEach(item => {
+            item.classList.remove('border-primary', 'border-2');
+            const itemId = item.getAttribute('data-media-id') || '';
+            if (itemId === selectedMediaId) {
+                item.classList.add('border-primary', 'border-2');
+            }
+        });
+        searchInput.value = '';
+        // Show all items
+        document.querySelectorAll('.media-item-wrapper').forEach(w => w.style.display = '');
+        const noImageWrapper = document.querySelector('.media-item[data-media-id=""]')?.closest('.col-md-3');
+        if (noImageWrapper) {
+            noImageWrapper.style.display = '';
+        }
+    });
+});
+
+// Prevent form submission when clicking media picker trigger
+document.querySelector('.media-picker-trigger').addEventListener('click', function(e) {
+    e.preventDefault();
+});
+</script>
+
+<style>
+.media-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.media-item.border-primary {
+    border-width: 2px !important;
+}
+
+.media-library-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.media-library-grid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.media-library-grid::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.media-library-grid::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+</style>
 
 <%- include('partials/admin-footer') %>
 
