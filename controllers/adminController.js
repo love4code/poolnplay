@@ -124,13 +124,12 @@ exports.postLogin = async (req, res) => {
           });
         }
         
-        console.log('Login successful! Session saved.');
-        console.log('Session ID after save:', req.sessionID);
-        console.log('Session isAdmin:', req.session.isAdmin);
-        console.log('Response Set-Cookie header should contain:', req.sessionID);
-        
-        // Redirect - express-session will set the cookie in the response
-        res.redirect('/admin');
+          console.log('Login successful! Session saved.');
+          console.log('Session ID after save:', req.sessionID);
+          console.log('Session isAdmin:', req.session.isAdmin);
+          
+          // Redirect - express-session will set the cookie in the redirect response
+          res.redirect('/admin');
       });
     } else {
       console.log('Login failed: Credentials do not match');

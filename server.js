@@ -130,12 +130,31 @@ if (sessionStore) {
   });
 } else {
   console.log('Session: Using default MemoryStore (sessions lost on restart)');
-  console.log('Session cookie name: connect.sid (default)');
+  console.log('Session cookie name:', sessionConfig.name || 'connect.sid');
 }
 
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Middleware to log response headers (for debugging)
+app.use((req, res, next) => {
+  const originalEnd = res.end;
+  res.end = function(chunk, encoding) {
+    if (req.path === '/admin/login' && req.method === 'POST') {
+      console.log('=== RESPONSE HEADERS ===');
+      const headers = res.getHeaders();
+      console.log('All response headers:', JSON.stringify(headers, null, 2));
+      if (headers['set-cookie']) {
+        console.log('Set-Cookie header:', headers['set-cookie']);
+      } else {
+        console.log('WARNING: No Set-Cookie header found!');
+      }
+    }
+    originalEnd.call(this, chunk, encoding);
+  };
+  next();
+});
 
 // Make user session available to all views
 app.use((req, res, next) => {
