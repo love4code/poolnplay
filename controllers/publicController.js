@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Settings = require('../models/Settings');
 const Service = require('../models/Service');
 const Project = require('../models/Project');
@@ -62,26 +63,49 @@ const sendInquiryEmail = async (inquiryData) => {
 // Home page
 exports.getHome = async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB not connected. ReadyState:', mongoose.connection.readyState);
+      // Render with default values if MongoDB not connected
+      const defaultSettings = {
+        companyName: 'Pool N Play',
+        defaultSeoTitle: 'Pool N Play - Professional Pool Installation & Services',
+        defaultSeoDescription: 'Expert pool installation, liner replacement, and pool services.',
+        primaryColor: '#0d6efd',
+        secondaryColor: '#6c757d',
+      };
+      return res.render('public/home', {
+        title: defaultSettings.defaultSeoTitle,
+        description: defaultSettings.defaultSeoDescription,
+        settings: defaultSettings,
+        services: [],
+        projects: [],
+        heroImage: null,
+      });
+    }
+
     const settings = await Settings.getSettings();
     const featuredServices = await Service.find({ featured: true, active: true })
       .sort({ order: 1 })
-      .limit(3);
+      .limit(3)
+      .catch(() => []);
     const featuredProjects = await Project.find({ featured: true, active: true })
       .sort({ order: 1 })
       .limit(4)
-      .populate('images');
+      .populate('images')
+      .catch(() => []);
     
     let heroImage = null;
     if (settings.heroImage) {
-      heroImage = await Media.findById(settings.heroImage);
+      heroImage = await Media.findById(settings.heroImage).catch(() => null);
     }
     
     res.render('public/home', {
       title: settings.defaultSeoTitle,
       description: settings.defaultSeoDescription,
       settings,
-      services: featuredServices,
-      projects: featuredProjects,
+      services: featuredServices || [],
+      projects: featuredProjects || [],
       heroImage,
     });
   } catch (error) {
