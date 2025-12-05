@@ -96,13 +96,12 @@ if (isValidMongoUri) {
 // If no store, express-session will use MemoryStore by default
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-  name: 'poolnplay.sid',
-  resave: false,
-  saveUninitialized: false,
-  rolling: false,
+  // Use default cookie name to avoid conflicts
+  resave: true,
+  saveUninitialized: true,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: true, // Always secure on Heroku (HTTPS)
+    secure: true,
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
@@ -128,7 +127,7 @@ if (sessionStore) {
   });
 } else {
   console.log('Session: Using default MemoryStore (sessions lost on restart)');
-  console.log('Session cookie name:', sessionConfig.name || 'connect.sid');
+  console.log('Session cookie name:', sessionConfig.name || 'connect.sid (default)');
 }
 
 // View engine setup
@@ -139,14 +138,17 @@ app.set('views', path.join(__dirname, 'views'));
 app.use((req, res, next) => {
   const originalEnd = res.end;
   res.end = function(chunk, encoding) {
-    if (req.path === '/admin/login' && req.method === 'POST') {
-      console.log('=== RESPONSE HEADERS ===');
+    // Log Set-Cookie headers for login and redirects
+    if ((req.path === '/admin/login' && req.method === 'POST') || 
+        (req.path === '/admin' && req.method === 'GET')) {
+      console.log('=== RESPONSE HEADERS FOR:', req.path, req.method, '===');
       const headers = res.getHeaders();
-      console.log('All response headers:', JSON.stringify(headers, null, 2));
-      if (headers['set-cookie']) {
-        console.log('Set-Cookie header:', headers['set-cookie']);
+      const setCookie = headers['set-cookie'] || res.getHeader('Set-Cookie');
+      if (setCookie) {
+        console.log('✅ Set-Cookie header found:', Array.isArray(setCookie) ? setCookie : [setCookie]);
       } else {
-        console.log('WARNING: No Set-Cookie header found!');
+        console.log('❌ WARNING: No Set-Cookie header found in response!');
+        console.log('All response headers:', Object.keys(headers));
       }
     }
     originalEnd.call(this, chunk, encoding);

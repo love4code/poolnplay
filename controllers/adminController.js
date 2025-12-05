@@ -95,14 +95,22 @@ exports.postLogin = async (req, res) => {
     
     // Check if credentials match
     if (username && password && username.trim() === adminUsername && password === adminPassword) {
-      // Set session data
+      // Set session data BEFORE save
       req.session.isAdmin = true;
       req.session.user = username;
+      req.session.loginTime = new Date().toISOString();
       
       console.log('=== LOGIN SUCCESS ===');
       console.log('Session ID:', req.sessionID);
       console.log('Setting isAdmin to true');
-      console.log('Session before save:', JSON.stringify(req.session));
+      console.log('Session data set:', {
+        isAdmin: req.session.isAdmin,
+        user: req.session.user,
+        loginTime: req.session.loginTime,
+      });
+      
+      // Mark session as modified to ensure it's saved
+      req.session.touch();
       
       // Save and redirect
       req.session.save((err) => {
@@ -116,10 +124,19 @@ exports.postLogin = async (req, res) => {
         
         console.log('Session saved successfully');
         console.log('Session ID after save:', req.sessionID);
-        console.log('Session isAdmin after save:', req.session.isAdmin);
+        console.log('Session data after save:', JSON.stringify(req.session));
         
-        // Redirect
-        return res.redirect('/admin');
+        // Verify session data is still there
+        if (!req.session.isAdmin) {
+          console.error('ERROR: isAdmin lost after save!');
+          req.session.isAdmin = true; // Set it again
+          req.session.save(() => {
+            res.redirect('/admin');
+          });
+        } else {
+          // Redirect
+          res.redirect('/admin');
+        }
       });
     } else {
       console.log('Login failed: Credentials do not match');

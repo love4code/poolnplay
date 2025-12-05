@@ -5,6 +5,14 @@ const { requireAuth, redirectIfAuth } = require('../middleware/auth');
 
 // Test endpoint to check session
 router.get('/test-session', (req, res) => {
+  // Try setting a test cookie
+  res.cookie('test-cookie', 'test-value', {
+    maxAge: 1000 * 60 * 60,
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+  });
+  
   res.json({
     sessionID: req.sessionID,
     isAdmin: req.session.isAdmin,
@@ -13,6 +21,24 @@ router.get('/test-session', (req, res) => {
     headers: {
       cookie: req.headers.cookie,
     },
+    message: 'Test cookie set. Refresh and check if test-cookie appears in cookies.',
+  });
+});
+
+// Test endpoint to set session manually
+router.get('/test-set-session', (req, res) => {
+  req.session.isAdmin = true;
+  req.session.test = 'This is a test';
+  req.session.save((err) => {
+    if (err) {
+      return res.json({ error: 'Session save failed', err: err.message });
+    }
+    res.json({
+      success: true,
+      sessionID: req.sessionID,
+      session: req.session,
+      message: 'Session set. Now visit /admin/test-session to check if it persists.',
+    });
   });
 });
 
