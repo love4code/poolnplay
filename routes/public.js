@@ -9,6 +9,7 @@ router.get('/contact', publicController.getContact);
 router.get('/products', publicController.getProducts);
 router.get('/products/:id', publicController.getProduct);
 router.get('/portfolio', publicController.getPortfolio);
+router.get('/portfolio/:id', publicController.getProject);
 
 // Form submission
 router.post('/inquiry', publicController.submitInquiry);

@@ -1,0 +1,90 @@
+<%- include('../partials/header') %>
+
+<section class="py-5 mt-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12 mb-4">
+                <h1 class="display-5 mb-3"><%= project.title %></h1>
+                <div class="mb-4">
+                    <p><%= project.description %></p>
+                </div>
+            </div>
+        </div>
+        
+        <% if (project.images && project.images.length > 0) { %>
+            <div class="row g-4 mb-5">
+                <% project.images.forEach((image, index) => { %>
+                    <div class="col-md-6 col-lg-4">
+                        <% if (image.largeDataUrl) { %>
+                            <img src="<%= image.largeDataUrl %>" class="img-fluid rounded shadow" alt="<%= project.title %> - Image <%= index + 1 %>" style="width: 100%; height: 300px; object-fit: cover;">
+                        <% } else if (image.mediumDataUrl) { %>
+                            <img src="<%= image.mediumDataUrl %>" class="img-fluid rounded shadow" alt="<%= project.title %> - Image <%= index + 1 %>" style="width: 100%; height: 300px; object-fit: cover;">
+                        <% } %>
+                    </div>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="row mb-5">
+                <div class="col-lg-12">
+                    <div class="bg-primary text-white p-5 text-center rounded" style="height: 400px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-image" style="font-size: 5rem;"></i>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+        
+        <div class="row mt-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="bi bi-envelope"></i> Request Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <form class="inquiry-form">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Name *</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Town *</label>
+                                    <input type="text" name="town" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone Number *</label>
+                                    <input type="tel" name="phone" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" name="email" class="form-control" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Service *</label>
+                                    <select name="service" class="form-select" required>
+                                        <option value="">Select a service</option>
+                                        <option value="New Above Ground Pool">New Above Ground Pool</option>
+                                        <option value="Liner Replacement">Liner Replacement</option>
+                                        <option value="Pool Install">Pool Install</option>
+                                        <option value="Service Call">Service Call</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Message</label>
+                                    <textarea name="message" class="form-control" rows="4"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="bi bi-send"></i> Submit Inquiry
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+

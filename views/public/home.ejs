@@ -52,19 +52,21 @@
         <div class="row g-4">
             <% projects.forEach(project => { %>
                 <div class="col-md-6 col-lg-3">
-                    <div class="portfolio-item">
-                        <% if (project.images && project.images.length > 0 && project.images[0].thumbnailDataUrl) { %>
-                            <img src="<%= project.images[0].thumbnailDataUrl %>" alt="<%= project.title %>" class="img-fluid">
-                        <% } else { %>
-                            <div class="bg-primary text-white p-5 text-center" style="height: 250px; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-image" style="font-size: 3rem;"></i>
+                    <a href="/portfolio/<%= project._id %>" class="text-decoration-none">
+                        <div class="portfolio-item" style="cursor: pointer;">
+                            <% if (project.images && project.images.length > 0 && project.images[0].thumbnailDataUrl) { %>
+                                <img src="<%= project.images[0].thumbnailDataUrl %>" alt="<%= project.title %>" class="img-fluid">
+                            <% } else { %>
+                                <div class="bg-primary text-white p-5 text-center" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                </div>
+                            <% } %>
+                            <div class="p-3 bg-white">
+                                <h5 class="text-dark"><%= project.title %></h5>
+                                <p class="text-muted small"><%= project.description.substring(0, 100) %>...</p>
                             </div>
-                        <% } %>
-                        <div class="p-3 bg-white">
-                            <h5><%= project.title %></h5>
-                            <p class="text-muted small"><%= project.description.substring(0, 100) %>...</p>
                         </div>
-                    </div>
+                    </a>
                 </div>
             <% }); %>
         </div>

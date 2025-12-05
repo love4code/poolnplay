@@ -289,6 +289,33 @@ exports.getPortfolio = async (req, res) => {
   }
 };
 
+// Single project page
+exports.getProject = async (req, res) => {
+  try {
+    const settings = await getSettingsSafe();
+    
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(404).render('error', { error: 'Project not found', title: '404' });
+    }
+    
+    const project = await Project.findById(req.params.id).populate('images').catch(() => null);
+    
+    if (!project || !project.active) {
+      return res.status(404).render('error', { error: 'Project not found', title: '404' });
+    }
+    
+    res.render('public/project', {
+      title: `${project.title} - Pool N Play`,
+      description: project.seoDescription || project.description.substring(0, 160),
+      settings,
+      project,
+    });
+  } catch (error) {
+    console.error('Project page error:', error);
+    res.status(500).render('error', { error: 'Error loading project page', title: 'Error' });
+  }
+};
+
 // Submit inquiry (from any form)
 exports.submitInquiry = async (req, res) => {
   try {
