@@ -112,20 +112,48 @@ exports.getHome = async (req, res) => {
     let featuredProjects = [];
     let heroImage = null;
     
-    if (mongoose.connection.readyState === 1) {
-      featuredServices = await Service.find({ featured: true, active: true })
-        .sort({ order: 1 })
-        .limit(3)
-        .catch(() => []);
-      featuredProjects = await Project.find({ active: true })
-        .sort({ createdAt: -1 })
-        .limit(4)
-        .populate('images')
-        .catch(() => []);
-      
-      if (settings.heroImage) {
-        heroImage = await Media.findById(settings.heroImage).catch(() => null);
+    // Log connection state for debugging
+    const connectionState = mongoose.connection.readyState;
+    const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+    console.log(`MongoDB connection state: ${connectionState} (${states[connectionState] || 'unknown'})`);
+    
+    // Try to fetch data - attempt even if not fully connected (might be connecting)
+    try {
+      if (mongoose.connection.readyState === 1) {
+        console.log('MongoDB connected, fetching data...');
+        
+        featuredServices = await Service.find({ featured: true, active: true })
+          .sort({ order: 1 })
+          .limit(3)
+          .catch((err) => {
+            console.error('Error fetching services:', err.message);
+            return [];
+          });
+        console.log(`Fetched ${featuredServices.length} services`);
+        
+        featuredProjects = await Project.find({ active: true })
+          .sort({ createdAt: -1 })
+          .limit(4)
+          .populate('images')
+          .catch((err) => {
+            console.error('Error fetching projects:', err.message);
+            return [];
+          });
+        console.log(`Fetched ${featuredProjects.length} projects`);
+        
+        if (settings.heroImage) {
+          heroImage = await Media.findById(settings.heroImage).catch((err) => {
+            console.error('Error fetching hero image:', err.message);
+            return null;
+          });
+        }
+      } else {
+        console.warn(`MongoDB not connected (state: ${connectionState}). Data will not be loaded.`);
+        console.warn('Check your MONGODB_URI environment variable and MongoDB connection.');
       }
+    } catch (dbError) {
+      console.error('Database query error:', dbError);
+      // Continue with empty arrays - don't crash the page
     }
     
     res.render('public/home', {

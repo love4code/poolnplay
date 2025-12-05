@@ -22,25 +22,48 @@ if (!process.env.MONGODB_URI) {
 // Configure mongoose to not crash on connection errors
 mongoose.set('strictQuery', false);
 
+// Connection event handlers
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB connected successfully');
+  console.log('Database:', mongoose.connection.name);
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB connection error:', err.message);
+  if (err.code === 'ENOTFOUND') {
+    console.error('DNS lookup failed. Check your MongoDB connection string.');
+    console.error('Your connection string should look like:');
+    console.error('mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/database');
+  }
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️  MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('✅ MongoDB reconnected');
+});
+
 // Connect with options to handle errors gracefully
 mongoose.connect(mongoUri, {
   serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
   socketTimeoutMS: 45000,
 })
 .then(() => {
-  console.log('MongoDB connected successfully');
-  console.log('Database:', mongoose.connection.name);
+  // Connection successful - event handler will log
 })
 .catch(err => {
-  console.error('MongoDB connection error:', err.message);
+  console.error('❌ MongoDB initial connection failed:', err.message);
   console.error('Error code:', err.code);
-  if (err.code === 'ENOTFOUND') {
-    console.error('DNS lookup failed. Check your MongoDB connection string.');
-    console.error('Your connection string should look like:');
-    console.error('mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/database');
+  if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED') {
+    console.error('\n📝 To fix this:');
+    console.error('1. For local development: Start MongoDB locally or');
+    console.error('2. Set MONGODB_URI environment variable to your MongoDB Atlas connection string');
+    console.error('   Example: mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net/database');
+    console.error('\n💡 Create a .env file with: MONGODB_URI=your_connection_string');
   }
-  console.error('Make sure MONGODB_URI is set correctly in your environment variables.');
-  console.error('The app will continue running, but database operations will fail.');
+  console.error('\n⚠️  The app will continue running, but database operations will fail.');
   // Don't crash the app - let it continue without MongoDB
 });
 
