@@ -70,7 +70,18 @@ exports.getDashboard = async (req, res) => {
 
 // Login
 exports.getLogin = (req, res) => {
-  res.render('admin/login', { title: 'Admin Login' });
+  // Clear any existing session on login page
+  if (req.session) {
+    console.log('Login page - clearing old session');
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Error destroying session:', err);
+      }
+      res.render('admin/login', { title: 'Admin Login' });
+    });
+  } else {
+    res.render('admin/login', { title: 'Admin Login' });
+  }
 };
 
 exports.postLogin = async (req, res) => {
@@ -94,12 +105,14 @@ exports.postLogin = async (req, res) => {
     
     // Check if credentials match
     if (username && password && username.trim() === adminUsername && password === adminPassword) {
-      // Set session
+      // Don't regenerate - just set isAdmin on existing session
+      // This ensures the session ID stays the same and cookie matches
       req.session.isAdmin = true;
-      req.session.user = username; // Store username for debugging
+      req.session.user = username;
       
       console.log('Setting session - isAdmin:', req.session.isAdmin);
-      console.log('Session ID before save:', req.sessionID);
+      console.log('Session ID:', req.sessionID);
+      console.log('Existing cookie:', req.headers.cookie);
       
       // Save session and redirect
       req.session.save((err) => {
@@ -114,11 +127,10 @@ exports.postLogin = async (req, res) => {
         console.log('Login successful! Session saved.');
         console.log('Session ID after save:', req.sessionID);
         console.log('Session isAdmin:', req.session.isAdmin);
+        console.log('Response Set-Cookie header should contain:', req.sessionID);
         
-        // Redirect after a small delay to ensure session is saved
-        setTimeout(() => {
-          res.redirect('/admin');
-        }, 100);
+        // Redirect - express-session will set the cookie in the response
+        res.redirect('/admin');
       });
     } else {
       console.log('Login failed: Credentials do not match');

@@ -97,13 +97,16 @@ if (isValidMongoUri) {
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   name: 'poolnplay.sid', // Match the cookie name that's already set
-  resave: false,
-  saveUninitialized: false,
+  resave: true, // Force save to help with memory store
+  saveUninitialized: true, // Save uninitialized sessions
+  rolling: true, // Reset expiration on activity
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS required)
+    secure: true, // Always secure on Heroku (HTTPS)
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'lax', // Use 'lax' for same-site requests
+    path: '/', // Make sure path is set
+    domain: undefined, // Let browser set domain automatically
   },
   unset: 'destroy',
 };
