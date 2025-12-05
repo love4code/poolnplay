@@ -95,17 +95,26 @@ if (isValidMongoUri) {
 // Session middleware - use memory store if MongoDB store failed
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
+  resave: true, // Changed to true to help with memory store
+  saveUninitialized: true, // Changed to true to ensure session is saved
   store: sessionStore, // null = memory store (works even without MongoDB)
+  name: 'poolnplay.sid', // Custom session name
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS required)
+    httpOnly: true,
     sameSite: 'lax',
   },
   // Don't fail if store has errors - use memory as fallback
   unset: 'destroy',
 }));
+
+// Log session store status
+if (sessionStore) {
+  console.log('Using MongoDB session store');
+} else {
+  console.log('Using memory session store (sessions lost on restart)');
+}
 
 // Handle session store errors gracefully
 if (sessionStore) {
@@ -122,6 +131,12 @@ app.set('views', path.join(__dirname, 'views'));
 // Make user session available to all views
 app.use((req, res, next) => {
   res.locals.isAdmin = req.session.isAdmin || false;
+  // Debug session on each request
+  if (req.path.startsWith('/admin') && req.path !== '/admin/login') {
+    console.log('Request to:', req.path);
+    console.log('Session ID:', req.sessionID);
+    console.log('Session isAdmin:', req.session.isAdmin);
+  }
   next();
 });
 

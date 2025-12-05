@@ -96,6 +96,10 @@ exports.postLogin = async (req, res) => {
     if (username && password && username.trim() === adminUsername && password === adminPassword) {
       // Set session
       req.session.isAdmin = true;
+      req.session.user = username; // Store username for debugging
+      
+      console.log('Setting session - isAdmin:', req.session.isAdmin);
+      console.log('Session ID before save:', req.sessionID);
       
       // Save session and redirect
       req.session.save((err) => {
@@ -107,7 +111,19 @@ exports.postLogin = async (req, res) => {
           });
         }
         
-        console.log('Login successful! Session saved. isAdmin:', req.session.isAdmin);
+        console.log('Login successful! Session saved.');
+        console.log('Session ID after save:', req.sessionID);
+        console.log('Session isAdmin:', req.session.isAdmin);
+        console.log('Setting cookie...');
+        
+        // Force cookie to be set
+        res.cookie('poolnplay.sid', req.sessionID, {
+          maxAge: 1000 * 60 * 60 * 24,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        });
+        
         res.redirect('/admin');
       });
     } else {
