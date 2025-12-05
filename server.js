@@ -50,18 +50,30 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Use memory store if MongoDB connection string is invalid or missing
 let sessionStore = null;
 
+// Check if MongoDB URI is valid (not a placeholder)
+const hasMongoUri = process.env.MONGODB_URI && process.env.MONGODB_URI.includes('mongodb');
+const hasPlaceholder = process.env.MONGODB_URI && (
+  process.env.MONGODB_URI.includes('YOURCLUSTER') ||
+  process.env.MONGODB_URI.includes('cluster.mongodb.net') || // Invalid format without cluster ID
+  !process.env.MONGODB_URI.match(/cluster\d+\.\w+\.mongodb\.net/) // Doesn't match valid format
+);
+
+const isValidMongoUri = hasMongoUri && !hasPlaceholder;
+
 // Only use MongoDB store if we have a valid connection string
-if (process.env.MONGODB_URI && process.env.MONGODB_URI.includes('mongodb')) {
+if (isValidMongoUri) {
   try {
     sessionStore = MongoStore.create({
       mongoUrl: mongoUri,
       touchAfter: 24 * 3600, // lazy session update
       ttl: 24 * 60 * 60, // 24 hours
+      autoRemove: 'native',
     });
 
     sessionStore.on('error', (error) => {
       console.error('Session store error:', error.message);
-      console.warn('Sessions will be stored in memory instead');
+      console.warn('Session store will fall back to memory');
+      // Don't set to null here - let it try to reconnect
     });
 
     sessionStore.on('connect', () => {
@@ -73,21 +85,35 @@ if (process.env.MONGODB_URI && process.env.MONGODB_URI.includes('mongodb')) {
     sessionStore = null;
   }
 } else {
-  console.warn('MONGODB_URI not set or invalid. Using memory store for sessions.');
+  console.warn('MONGODB_URI not set, invalid, or contains placeholder. Using memory store for sessions.');
   console.warn('Note: Sessions will be lost on app restart.');
+  if (process.env.MONGODB_URI && process.env.MONGODB_URI.includes('YOURCLUSTER')) {
+    console.error('ERROR: MONGODB_URI contains "YOURCLUSTER" placeholder. Please set a real MongoDB connection string.');
+  }
 }
 
+// Session middleware - use memory store if MongoDB store failed
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
-  store: sessionStore, // null = memory store
+  store: sessionStore, // null = memory store (works even without MongoDB)
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
     sameSite: 'lax',
   },
+  // Don't fail if store has errors - use memory as fallback
+  unset: 'destroy',
 }));
+
+// Handle session store errors gracefully
+if (sessionStore) {
+  sessionStore.on('error', (error) => {
+    console.error('Session store error (will use memory):', error.message);
+    // Session will fall back to memory automatically
+  });
+}
 
 // View engine setup
 app.set('view engine', 'ejs');

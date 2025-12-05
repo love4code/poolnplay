@@ -25,14 +25,38 @@ const upload = multer({
 // Admin Dashboard
 exports.getDashboard = async (req, res) => {
   try {
-    const stats = {
-      inquiries: await Inquiry.countDocuments(),
-      unreadInquiries: await Inquiry.countDocuments({ read: false }),
-      products: await Product.countDocuments({ active: true }),
-      services: await Service.countDocuments({ active: true }),
-      projects: await Project.countDocuments({ active: true }),
-      media: await Media.countDocuments(),
+    const mongoose = require('mongoose');
+    
+    // Default stats if MongoDB not connected
+    const defaultStats = {
+      inquiries: 0,
+      unreadInquiries: 0,
+      products: 0,
+      services: 0,
+      projects: 0,
+      media: 0,
     };
+    
+    let stats = defaultStats;
+    
+    // Only query MongoDB if connected
+    if (mongoose.connection.readyState === 1) {
+      try {
+        stats = {
+          inquiries: await Inquiry.countDocuments().catch(() => 0),
+          unreadInquiries: await Inquiry.countDocuments({ read: false }).catch(() => 0),
+          products: await Product.countDocuments({ active: true }).catch(() => 0),
+          services: await Service.countDocuments({ active: true }).catch(() => 0),
+          projects: await Project.countDocuments({ active: true }).catch(() => 0),
+          media: await Media.countDocuments().catch(() => 0),
+        };
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        stats = defaultStats;
+      }
+    } else {
+      console.warn('MongoDB not connected. Showing default stats.');
+    }
     
     res.render('admin/dashboard', {
       title: 'Admin Dashboard',
