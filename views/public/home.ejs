@@ -1,0 +1,129 @@
+<%- include('../partials/header') %>
+
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-content text-center">
+            <% if (heroImage) { %>
+                <img src="<%= heroImage.mediumDataUrl %>" alt="Pool N Play" class="img-fluid rounded mb-4" style="max-height: 400px; width: auto;">
+            <% } else { %>
+                <h1 class="display-4 fw-bold mb-4">Welcome to Pool N Play</h1>
+                <p class="lead mb-4">Professional Pool Installation & Services</p>
+                <div class="mt-4">
+                    <a href="/contact" class="btn btn-light btn-lg me-3">
+                        <i class="bi bi-calendar-check"></i> Schedule
+                    </a>
+                    <a href="/products" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-box-seam"></i> View Products
+                    </a>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</section>
+
+<!-- Services Section -->
+<% if (services && services.length > 0) { %>
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Our Services</h2>
+        <div class="row g-4">
+            <% services.forEach(service => { %>
+                <div class="col-md-4">
+                    <div class="card service-card h-100 text-center p-4">
+                        <div class="service-icon">
+                            <i class="bi <%= service.icon %>"></i>
+                        </div>
+                        <h4><%= service.name %></h4>
+                        <p class="text-muted"><%= service.description %></p>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+</section>
+<% } %>
+
+<!-- Portfolio Section -->
+<% if (projects && projects.length > 0) { %>
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Our Portfolio</h2>
+        <div class="row g-4">
+            <% projects.forEach(project => { %>
+                <div class="col-md-6 col-lg-3">
+                    <div class="portfolio-item">
+                        <% if (project.images && project.images.length > 0 && project.images[0].thumbnailDataUrl) { %>
+                            <img src="<%= project.images[0].thumbnailDataUrl %>" alt="<%= project.title %>" class="img-fluid">
+                        <% } else { %>
+                            <div class="bg-primary text-white p-5 text-center" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-image" style="font-size: 3rem;"></i>
+                            </div>
+                        <% } %>
+                        <div class="p-3 bg-white">
+                            <h5><%= project.title %></h5>
+                            <p class="text-muted small"><%= project.description.substring(0, 100) %>...</p>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+        <div class="text-center mt-4">
+            <a href="/portfolio" class="btn btn-primary">View All Projects</a>
+        </div>
+    </div>
+</section>
+<% } %>
+
+<!-- Contact Form Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="text-center mb-4">Get In Touch</h2>
+                <form class="inquiry-form">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name *</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Town *</label>
+                            <input type="text" name="town" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone Number *</label>
+                            <input type="tel" name="phone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email Address *</label>
+                            <input type="email" name="email" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Service *</label>
+                            <select name="service" class="form-select" required>
+                                <option value="">Select a service</option>
+                                <option value="New Above Ground Pool">New Above Ground Pool</option>
+                                <option value="Liner Replacement">Liner Replacement</option>
+                                <option value="Pool Install">Pool Install</option>
+                                <option value="Service Call">Service Call</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Message</label>
+                            <textarea name="message" class="form-control" rows="4"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-send"></i> Submit Inquiry
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+

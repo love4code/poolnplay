@@ -1,0 +1,87 @@
+<%- include('partials/admin-header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Services Management</h1>
+    <a href="/admin/services/new" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Add Service
+    </a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Icon</th>
+                <th>Description</th>
+                <th>Featured</th>
+                <th>Order</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (services && services.length > 0) { %>
+                <% services.forEach(service => { %>
+                    <tr>
+                        <td><%= service.name %></td>
+                        <td><i class="bi <%= service.icon %>"></i> <%= service.icon %></td>
+                        <td><%= service.description.substring(0, 50) %>...</td>
+                        <td>
+                            <% if (service.featured) { %>
+                                <span class="badge bg-success">Yes</span>
+                            <% } else { %>
+                                <span class="badge bg-secondary">No</span>
+                            <% } %>
+                        </td>
+                        <td><%= service.order %></td>
+                        <td>
+                            <% if (service.active) { %>
+                                <span class="badge bg-success">Active</span>
+                            <% } else { %>
+                                <span class="badge bg-secondary">Inactive</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <a href="/admin/services/<%= service._id %>/edit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <button class="btn btn-sm btn-danger" onclick="deleteService('<%= service._id %>', '<%= service.name %>')">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <tr>
+                    <td colspan="7" class="text-center text-muted">No services found. <a href="/admin/services/new">Add one</a></td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+<script>
+async function deleteService(id, name) {
+    if (!confirmDelete(name)) return;
+    
+    try {
+        const response = await fetch(`/admin/services/${id}`, {
+            method: 'DELETE',
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Error deleting service');
+        }
+    } catch (error) {
+        alert('Error deleting service');
+    }
+}
+</script>
+
+<%- include('partials/admin-footer') %>
+

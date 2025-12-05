@@ -1,0 +1,87 @@
+<%- include('../partials/header') %>
+
+<section class="py-5 mt-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <h2 class="mb-4">Contact Information</h2>
+                <% if (typeof settings !== 'undefined') { %>
+                    <% if (settings.companyName) { %>
+                        <h4><%= settings.companyName %></h4>
+                    <% } %>
+                    <% if (settings.companyAddress) { %>
+                        <p class="mb-2">
+                            <i class="bi bi-geo-alt-fill text-primary me-2"></i>
+                            <%= settings.companyAddress %>
+                        </p>
+                    <% } %>
+                    <% if (settings.companyPhone) { %>
+                        <p class="mb-2">
+                            <i class="bi bi-telephone-fill text-primary me-2"></i>
+                            <a href="tel:<%= settings.companyPhone %>" class="text-decoration-none"><%= settings.companyPhone %></a>
+                        </p>
+                    <% } %>
+                    <% if (settings.companyEmail) { %>
+                        <p class="mb-4">
+                            <i class="bi bi-envelope-fill text-primary me-2"></i>
+                            <a href="mailto:<%= settings.companyEmail %>" class="text-decoration-none"><%= settings.companyEmail %></a>
+                        </p>
+                    <% } %>
+                <% } %>
+                
+                <div class="mt-4">
+                    <h5>Business Hours</h5>
+                    <p>Monday - Friday: 8:00 AM - 6:00 PM<br>
+                    Saturday: 9:00 AM - 4:00 PM<br>
+                    Sunday: Closed</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <h2 class="mb-4">Send Us a Message</h2>
+                <form class="inquiry-form">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Name *</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Town *</label>
+                            <input type="text" name="town" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone Number *</label>
+                            <input type="tel" name="phone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email Address *</label>
+                            <input type="email" name="email" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Service *</label>
+                            <select name="service" class="form-select" required>
+                                <option value="">Select a service</option>
+                                <option value="New Above Ground Pool">New Above Ground Pool</option>
+                                <option value="Liner Replacement">Liner Replacement</option>
+                                <option value="Pool Install">Pool Install</option>
+                                <option value="Service Call">Service Call</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Message</label>
+                            <textarea name="message" class="form-control" rows="5"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-send"></i> Send Message
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+

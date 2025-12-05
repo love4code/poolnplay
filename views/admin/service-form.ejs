@@ -1,0 +1,60 @@
+<%- include('partials/admin-header') %>
+
+<h1 class="mb-4"><%= typeof service !== 'undefined' && service ? 'Edit Service' : 'Add Service' %></h1>
+
+<form method="POST" action="<%= typeof service !== 'undefined' && service ? `/admin/services/${service._id}?_method=PUT` : '/admin/services' %>">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Service Name *</label>
+                        <input type="text" name="name" class="form-control" value="<%= typeof service !== 'undefined' && service ? service.name : '' %>" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description *</label>
+                        <textarea name="description" class="form-control" rows="4" required><%= typeof service !== 'undefined' && service ? service.description : '' %></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Bootstrap Icon Class *</label>
+                        <input type="text" name="icon" class="form-control" value="<%= typeof service !== 'undefined' && service ? service.icon : '' %>" placeholder="e.g., bi-pool, bi-tools, bi-water" required>
+                        <small class="text-muted">Browse icons at <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a></small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Display Order</label>
+                                <input type="number" name="order" class="form-control" value="<%= typeof service !== 'undefined' && service ? service.order : 0 %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check mt-4">
+                                    <input type="checkbox" name="featured" class="form-check-input" id="featured" <%= typeof service !== 'undefined' && service && service.featured ? 'checked' : '' %>>
+                                    <label class="form-check-label" for="featured">Featured (Show on Home Page)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" name="active" class="form-check-input" id="active" <%= typeof service !== 'undefined' && service && service.active !== false ? 'checked' : '' %>>
+                                    <label class="form-check-label" for="active">Active</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Service
+                        </button>
+                        <a href="/admin/services" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<%- include('partials/admin-footer') %>
+

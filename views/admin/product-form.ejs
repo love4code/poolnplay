@@ -1,0 +1,86 @@
+<%- include('partials/admin-header') %>
+
+<h1 class="mb-4"><%= typeof product !== 'undefined' && product ? 'Edit Product' : 'Add Product' %></h1>
+
+<form method="POST" action="<%= typeof product !== 'undefined' && product ? `/admin/products/${product._id}?_method=PUT` : '/admin/products' %>">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Product Name *</label>
+                        <input type="text" name="name" class="form-control" value="<%= typeof product !== 'undefined' && product ? product.name : '' %>" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description *</label>
+                        <textarea name="description" class="form-control" rows="5" required><%= typeof product !== 'undefined' && product ? product.description : '' %></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Price (Optional)</label>
+                                <input type="number" step="0.01" name="price" class="form-control" value="<%= typeof product !== 'undefined' && product && product.price ? product.price : '' %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Featured Image</label>
+                                <select name="featuredImage" class="form-select">
+                                    <option value="">No image</option>
+                                    <% if (media && media.length > 0) { %>
+                                        <% media.forEach(item => { %>
+                                            <option value="<%= item._id %>" 
+                                                <%= typeof product !== 'undefined' && product && product.featuredImage && product.featuredImage._id.toString() === item._id.toString() ? 'selected' : '' %>>
+                                                <%= item.originalName %>
+                                            </option>
+                                        <% }); %>
+                                    <% } %>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Available Sizes (comma-separated)</label>
+                        <input type="text" name="sizes" class="form-control" value="<%= typeof product !== 'undefined' && product && product.sizes ? product.sizes.join(', ') : '' %>" placeholder="e.g., 12x24, 15x30, 18x36">
+                        <small class="text-muted">Enter sizes separated by commas</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="active" class="form-check-input" id="active" <%= typeof product !== 'undefined' && product && product.active !== false ? 'checked' : '' %>>
+                            <label class="form-check-label" for="active">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">SEO Settings</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">SEO Title</label>
+                        <input type="text" name="seoTitle" class="form-control" value="<%= typeof product !== 'undefined' && product ? product.seoTitle || '' : '' %>">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">SEO Description</label>
+                        <textarea name="seoDescription" class="form-control" rows="2"><%= typeof product !== 'undefined' && product ? product.seoDescription || '' : '' %></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Product
+                </button>
+                <a href="/admin/products" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<%- include('partials/admin-footer') %>
+

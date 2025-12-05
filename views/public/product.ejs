@@ -1,0 +1,103 @@
+<%- include('../partials/header') %>
+
+<section class="py-5 mt-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <% if (product.featuredImage && product.featuredImage.largeDataUrl) { %>
+                    <img src="<%= product.featuredImage.largeDataUrl %>" class="img-fluid rounded shadow" alt="<%= product.name %>">
+                <% } else { %>
+                    <div class="bg-primary text-white p-5 text-center rounded" style="height: 400px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-box-seam" style="font-size: 5rem;"></i>
+                    </div>
+                <% } %>
+            </div>
+            <div class="col-lg-6">
+                <h1 class="display-5 mb-3"><%= product.name %></h1>
+                <% if (product.price) { %>
+                    <p class="h3 text-primary mb-4">$<%= product.price.toFixed(2) %></p>
+                <% } %>
+                <div class="mb-4">
+                    <p><%= product.description %></p>
+                </div>
+                
+                <% if (product.sizes && product.sizes.length > 0) { %>
+                    <div class="mb-4">
+                        <h5>Available Sizes:</h5>
+                        <ul class="list-unstyled">
+                            <% product.sizes.forEach(size => { %>
+                                <li><i class="bi bi-check-circle-fill text-primary me-2"></i><%= size %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+        
+        <div class="row mt-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="bi bi-envelope"></i> Request Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <form class="inquiry-form">
+                            <input type="hidden" name="productId" value="<%= product._id %>">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Name *</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Town *</label>
+                                    <input type="text" name="town" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone Number *</label>
+                                    <input type="tel" name="phone" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" name="email" class="form-control" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Service *</label>
+                                    <select name="service" class="form-select" required>
+                                        <option value="">Select a service</option>
+                                        <option value="New Above Ground Pool">New Above Ground Pool</option>
+                                        <option value="Liner Replacement">Liner Replacement</option>
+                                        <option value="Pool Install">Pool Install</option>
+                                        <option value="Service Call">Service Call</option>
+                                    </select>
+                                </div>
+                                <% if (product.sizes && product.sizes.length > 0) { %>
+                                    <div class="col-12">
+                                        <label class="form-label">Pool Sizes (Select all that apply)</label>
+                                        <select name="poolSizes" class="form-select" multiple size="<%= Math.min(product.sizes.length, 5) %>">
+                                            <% product.sizes.forEach(size => { %>
+                                                <option value="<%= size %>"><%= size %></option>
+                                            <% }); %>
+                                        </select>
+                                        <small class="text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple sizes</small>
+                                    </div>
+                                <% } %>
+                                <div class="col-12">
+                                    <label class="form-label">Message</label>
+                                    <textarea name="message" class="form-control" rows="4"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="bi bi-send"></i> Submit Inquiry
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+

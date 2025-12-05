@@ -1,0 +1,50 @@
+<%- include('../partials/header') %>
+
+<section class="py-5 mt-4">
+    <div class="container">
+        <h1 class="display-4 text-center mb-5">Our Products</h1>
+        
+        <% if (products && products.length > 0) { %>
+            <div class="row g-4">
+                <% products.forEach(product => { %>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm">
+                            <% if (product.featuredImage && product.featuredImage.thumbnailDataUrl) { %>
+                                <img src="<%= product.featuredImage.thumbnailDataUrl %>" class="card-img-top" alt="<%= product.name %>" style="height: 250px; object-fit: cover;">
+                            <% } else { %>
+                                <div class="bg-primary text-white p-5 text-center" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-box-seam" style="font-size: 3rem;"></i>
+                                </div>
+                            <% } %>
+                            <div class="card-body">
+                                <h5 class="card-title"><%= product.name %></h5>
+                                <p class="card-text text-muted"><%= product.description.substring(0, 100) %>...</p>
+                                <% if (product.price) { %>
+                                    <p class="h5 text-primary">$<%= product.price.toFixed(2) %></p>
+                                <% } %>
+                                <% if (product.sizes && product.sizes.length > 0) { %>
+                                    <p class="small text-muted">
+                                        <i class="bi bi-rulers"></i> Available in <%= product.sizes.length %> size(s)
+                                    </p>
+                                <% } %>
+                            </div>
+                            <div class="card-footer bg-white">
+                                <a href="/products/<%= product._id %>" class="btn btn-primary w-100">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                <p class="text-muted mt-3">No products available at this time.</p>
+            </div>
+        <% } %>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+

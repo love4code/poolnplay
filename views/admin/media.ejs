@@ -1,0 +1,131 @@
+<%- include('partials/admin-header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Media Library</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        <i class="bi bi-upload"></i> Upload Images
+    </button>
+</div>
+
+<div id="uploadAlert" class="alert" style="display: none;"></div>
+
+<div class="row g-3" id="mediaGrid">
+    <% if (media && media.length > 0) { %>
+        <% media.forEach(item => { %>
+            <div class="col-md-3">
+                <div class="card">
+                    <img src="<%= item.thumbnailDataUrl %>" class="card-img-top" alt="<%= item.originalName %>" style="height: 200px; object-fit: cover;">
+                    <div class="card-body">
+                        <p class="card-text small text-truncate" title="<%= item.originalName %>"><%= item.originalName %></p>
+                        <button class="btn btn-sm btn-danger" onclick="deleteMedia('<%= item._id %>', '<%= item.originalName %>')">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+    <% } else { %>
+        <div class="col-12">
+            <p class="text-muted">No media files uploaded yet.</p>
+        </div>
+    <% } %>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Images</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Select Images (up to 10)</label>
+                        <input type="file" name="images" class="form-control" multiple accept="image/*" required>
+                        <small class="text-muted">Images will be automatically compressed and resized.</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadImages()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function uploadImages() {
+    const form = document.getElementById('uploadForm');
+    const formData = new FormData(form);
+    const files = form.querySelector('input[type="file"]').files;
+    
+    if (files.length === 0) {
+        alert('Please select at least one image.');
+        return;
+    }
+    
+    for (let file of files) {
+        formData.append('images', file);
+    }
+    
+    const uploadBtn = event.target;
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    
+    try {
+        const response = await fetch('/admin/media/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Images uploaded successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.message || 'Upload failed', 'danger');
+        }
+    } catch (error) {
+        showAlert('Error uploading images', 'danger');
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload';
+    }
+}
+
+async function deleteMedia(id, name) {
+    if (!confirmDelete(name)) return;
+    
+    try {
+        const response = await fetch(`/admin/media/${id}`, {
+            method: 'DELETE',
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Media deleted successfully', 'success');
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showAlert('Error deleting media', 'danger');
+        }
+    } catch (error) {
+        showAlert('Error deleting media', 'danger');
+    }
+}
+
+function showAlert(message, type) {
+    const alert = document.getElementById('uploadAlert');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    alert.style.display = 'block';
+    setTimeout(() => alert.style.display = 'none', 3000);
+}
+</script>
+
+<%- include('partials/admin-footer') %>
+

@@ -1,0 +1,86 @@
+<%- include('partials/admin-header') %>
+
+<h1 class="mb-4"><%= typeof project !== 'undefined' && project ? 'Edit Project' : 'Add Project' %></h1>
+
+<form method="POST" action="<%= typeof project !== 'undefined' && project ? `/admin/projects/${project._id}?_method=PUT` : '/admin/projects' %>">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Project Title *</label>
+                        <input type="text" name="title" class="form-control" value="<%= typeof project !== 'undefined' && project ? project.title : '' %>" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description *</label>
+                        <textarea name="description" class="form-control" rows="5" required><%= typeof project !== 'undefined' && project ? project.description : '' %></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Select Images</label>
+                        <select name="images" class="form-select" multiple size="10">
+                            <% if (media && media.length > 0) { %>
+                                <% media.forEach(item => { %>
+                                    <option value="<%= item._id %>" 
+                                        <%= typeof project !== 'undefined' && project && project.images && project.images.some(img => img._id.toString() === item._id.toString()) ? 'selected' : '' %>>
+                                        <%= item.originalName %>
+                                    </option>
+                                <% }); %>
+                            <% } else { %>
+                                <option disabled>No media available. Upload images first.</option>
+                            <% } %>
+                        </select>
+                        <small class="text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple images</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Display Order</label>
+                                <input type="number" name="order" class="form-control" value="<%= typeof project !== 'undefined' && project ? project.order : 0 %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check mt-4">
+                                    <input type="checkbox" name="featured" class="form-check-input" id="featured" <%= typeof project !== 'undefined' && project && project.featured ? 'checked' : '' %>>
+                                    <label class="form-check-label" for="featured">Featured (Show on Home Page)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" name="active" class="form-check-input" id="active" <%= typeof project !== 'undefined' && project && project.active !== false ? 'checked' : '' %>>
+                                    <label class="form-check-label" for="active">Active</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">SEO Settings</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">SEO Title</label>
+                        <input type="text" name="seoTitle" class="form-control" value="<%= typeof project !== 'undefined' && project ? project.seoTitle || '' : '' %>">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">SEO Description</label>
+                        <textarea name="seoDescription" class="form-control" rows="2"><%= typeof project !== 'undefined' && project ? project.seoDescription || '' : '' %></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Project
+                </button>
+                <a href="/admin/projects" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<%- include('partials/admin-footer') %>
+

@@ -1,0 +1,37 @@
+<%- include('../partials/header') %>
+
+<section class="py-5 mt-4">
+    <div class="container">
+        <h1 class="display-4 text-center mb-5">Our Portfolio</h1>
+        
+        <% if (projects && projects.length > 0) { %>
+            <div class="row g-4">
+                <% projects.forEach(project => { %>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm portfolio-item">
+                            <% if (project.images && project.images.length > 0 && project.images[0].mediumDataUrl) { %>
+                                <img src="<%= project.images[0].mediumDataUrl %>" class="card-img-top" alt="<%= project.title %>" style="height: 300px; object-fit: cover;">
+                            <% } else { %>
+                                <div class="bg-primary text-white p-5 text-center" style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                </div>
+                            <% } %>
+                            <div class="card-body">
+                                <h5 class="card-title"><%= project.title %></h5>
+                                <p class="card-text text-muted"><%= project.description %></p>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="text-center py-5">
+                <i class="bi bi-images" style="font-size: 4rem; color: #ccc;"></i>
+                <p class="text-muted mt-3">No portfolio projects available at this time.</p>
+            </div>
+        <% } %>
+    </div>
+</section>
+
+<%- include('../partials/footer') %>
+

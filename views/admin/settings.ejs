@@ -1,0 +1,164 @@
+<%- include('partials/admin-header') %>
+
+<h1 class="mb-4">Settings</h1>
+
+<% if (typeof success !== 'undefined' && success) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        Settings saved successfully!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<form method="POST" action="/admin/settings">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Company Information -->
+            <div class="card mb-4">
+                <div class="card-header">Company Information</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Company Name</label>
+                        <input type="text" name="companyName" class="form-control" value="<%= settings.companyName %>">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea name="companyAddress" class="form-control" rows="2"><%= settings.companyAddress %></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" name="companyPhone" class="form-control" value="<%= settings.companyPhone %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="companyEmail" class="form-control" value="<%= settings.companyEmail %>">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Social Media -->
+            <div class="card mb-4">
+                <div class="card-header">Social Media Links</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><i class="bi bi-facebook"></i> Facebook</label>
+                                <input type="url" name="facebook" class="form-control" value="<%= settings.facebook %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><i class="bi bi-instagram"></i> Instagram</label>
+                                <input type="url" name="instagram" class="form-control" value="<%= settings.instagram %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><i class="bi bi-twitter"></i> Twitter</label>
+                                <input type="url" name="twitter" class="form-control" value="<%= settings.twitter %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><i class="bi bi-linkedin"></i> LinkedIn</label>
+                                <input type="url" name="linkedin" class="form-control" value="<%= settings.linkedin %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label"><i class="bi bi-youtube"></i> YouTube</label>
+                                <input type="url" name="youtube" class="form-control" value="<%= settings.youtube %>">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Theme Settings -->
+            <div class="card mb-4">
+                <div class="card-header">Theme Settings</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Theme Preset</label>
+                        <select name="theme" class="form-select">
+                            <option value="blue-water" <%= settings.theme === 'blue-water' ? 'selected' : '' %>>Blue Water</option>
+                            <option value="ocean-blue" <%= settings.theme === 'ocean-blue' ? 'selected' : '' %>>Ocean Blue</option>
+                            <option value="tropical-blue" <%= settings.theme === 'tropical-blue' ? 'selected' : '' %>>Tropical Blue</option>
+                            <option value="custom" <%= settings.theme === 'custom' ? 'selected' : '' %>>Custom</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Primary Color</label>
+                                <input type="color" name="primaryColor" class="form-control form-control-color" value="<%= settings.primaryColor %>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Secondary Color</label>
+                                <input type="color" name="secondaryColor" class="form-control form-control-color" value="<%= settings.secondaryColor %>">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hero Image -->
+            <div class="card mb-4">
+                <div class="card-header">Home Page Hero Image</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Hero Image</label>
+                        <select name="heroImage" class="form-select">
+                            <option value="">None (Show CTA Buttons)</option>
+                            <% if (media && media.length > 0) { %>
+                                <% media.forEach(item => { %>
+                                    <option value="<%= item._id %>" 
+                                        <%= settings.heroImage && settings.heroImage.toString() === item._id.toString() ? 'selected' : '' %>>
+                                        <%= item.originalName %>
+                                    </option>
+                                <% }); %>
+                            <% } %>
+                        </select>
+                        <small class="text-muted">If no image is selected, the home page will show "Schedule" and "View Products" buttons</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SEO Defaults -->
+            <div class="card mb-4">
+                <div class="card-header">Default SEO Settings</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Default SEO Title</label>
+                        <input type="text" name="defaultSeoTitle" class="form-control" value="<%= settings.defaultSeoTitle %>">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Default SEO Description</label>
+                        <textarea name="defaultSeoDescription" class="form-control" rows="2"><%= settings.defaultSeoDescription %></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<%- include('partials/admin-footer') %>
+

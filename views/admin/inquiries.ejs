@@ -1,0 +1,115 @@
+<%- include('partials/admin-header') %>
+
+<h1 class="mb-4">Recent Inquiries</h1>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Town</th>
+                <th>Contact</th>
+                <th>Service</th>
+                <th>Pool Sizes</th>
+                <th>Product</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (inquiries && inquiries.length > 0) { %>
+                <% inquiries.forEach(inquiry => { %>
+                    <tr class="<%= !inquiry.read ? 'table-warning' : '' %>">
+                        <td><%= new Date(inquiry.createdAt).toLocaleDateString() %></td>
+                        <td><%= inquiry.name %></td>
+                        <td><%= inquiry.town %></td>
+                        <td>
+                            <div><%= inquiry.phone %></div>
+                            <small class="text-muted"><%= inquiry.email %></small>
+                        </td>
+                        <td><%= inquiry.service %></td>
+                        <td>
+                            <% if (inquiry.poolSizes && inquiry.poolSizes.length > 0) { %>
+                                <%= inquiry.poolSizes.join(', ') %>
+                            <% } else { %>
+                                <span class="text-muted">-</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (inquiry.productId && inquiry.productId.name) { %>
+                                <%= inquiry.productId.name %>
+                            <% } else { %>
+                                <span class="text-muted">General</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (inquiry.read) { %>
+                                <span class="badge bg-success">Read</span>
+                            <% } else { %>
+                                <span class="badge bg-warning">Unread</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <% if (!inquiry.read) { %>
+                                <button class="btn btn-sm btn-info" onclick="markRead('<%= inquiry._id %>')" title="Mark as read">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            <% } %>
+                            <button class="btn btn-sm btn-danger" onclick="deleteInquiry('<%= inquiry._id %>', '<%= inquiry.name %>')">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <tr>
+                    <td colspan="9" class="text-center text-muted">No inquiries yet.</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+<script>
+async function deleteInquiry(id, name) {
+    if (!confirmDelete(name + "'s inquiry")) return;
+    
+    try {
+        const response = await fetch(`/admin/inquiries/${id}`, {
+            method: 'DELETE',
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Error deleting inquiry');
+        }
+    } catch (error) {
+        alert('Error deleting inquiry');
+    }
+}
+
+async function markRead(id) {
+    try {
+        const response = await fetch(`/admin/inquiries/${id}/read`, {
+            method: 'PUT',
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Error updating inquiry');
+        }
+    } catch (error) {
+        alert('Error updating inquiry');
+    }
+}
+</script>
+
+<%- include('partials/admin-footer') %>
+
