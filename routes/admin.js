@@ -3,6 +3,19 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { requireAuth, redirectIfAuth } = require('../middleware/auth');
 
+// Test endpoint to check session
+router.get('/test-session', (req, res) => {
+  res.json({
+    sessionID: req.sessionID,
+    isAdmin: req.session.isAdmin,
+    session: req.session,
+    cookies: req.cookies,
+    headers: {
+      cookie: req.headers.cookie,
+    },
+  });
+});
+
 // Auth routes
 router.get('/login', redirectIfAuth, adminController.getLogin);
 router.post('/login', redirectIfAuth, adminController.postLogin);

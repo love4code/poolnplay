@@ -70,18 +70,8 @@ exports.getDashboard = async (req, res) => {
 
 // Login
 exports.getLogin = (req, res) => {
-  // Clear any existing session on login page
-  if (req.session) {
-    console.log('Login page - clearing old session');
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Error destroying session:', err);
-      }
-      res.render('admin/login', { title: 'Admin Login' });
-    });
-  } else {
-    res.render('admin/login', { title: 'Admin Login' });
-  }
+  // Don't destroy session - just render the login page
+  res.render('admin/login', { title: 'Admin Login' });
 };
 
 exports.postLogin = async (req, res) => {
@@ -105,16 +95,16 @@ exports.postLogin = async (req, res) => {
     
     // Check if credentials match
     if (username && password && username.trim() === adminUsername && password === adminPassword) {
-      // Don't regenerate - just set isAdmin on existing session
-      // This ensures the session ID stays the same and cookie matches
+      // Set session data
       req.session.isAdmin = true;
       req.session.user = username;
       
-      console.log('Setting session - isAdmin:', req.session.isAdmin);
+      console.log('=== LOGIN SUCCESS ===');
       console.log('Session ID:', req.sessionID);
-      console.log('Existing cookie:', req.headers.cookie);
+      console.log('Setting isAdmin to true');
+      console.log('Session before save:', JSON.stringify(req.session));
       
-      // Save session and redirect
+      // Save and redirect
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
@@ -124,12 +114,12 @@ exports.postLogin = async (req, res) => {
           });
         }
         
-          console.log('Login successful! Session saved.');
-          console.log('Session ID after save:', req.sessionID);
-          console.log('Session isAdmin:', req.session.isAdmin);
-          
-          // Redirect - express-session will set the cookie in the redirect response
-          res.redirect('/admin');
+        console.log('Session saved successfully');
+        console.log('Session ID after save:', req.sessionID);
+        console.log('Session isAdmin after save:', req.session.isAdmin);
+        
+        // Redirect
+        return res.redirect('/admin');
       });
     } else {
       console.log('Login failed: Credentials do not match');

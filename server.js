@@ -96,19 +96,17 @@ if (isValidMongoUri) {
 // If no store, express-session will use MemoryStore by default
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-  name: 'poolnplay.sid', // Match the cookie name that's already set
-  resave: true, // Force save to help with memory store
-  saveUninitialized: true, // Save uninitialized sessions
-  rolling: true, // Reset expiration on activity
+  name: 'poolnplay.sid',
+  resave: false,
+  saveUninitialized: false,
+  rolling: false,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
     secure: true, // Always secure on Heroku (HTTPS)
     httpOnly: true,
-    sameSite: 'lax', // Use 'lax' for same-site requests
-    path: '/', // Make sure path is set
-    domain: undefined, // Let browser set domain automatically
+    sameSite: 'lax',
+    path: '/',
   },
-  unset: 'destroy',
 };
 
 // Only set store if we have a valid MongoDB store
