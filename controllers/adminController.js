@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const Settings = require('../models/Settings');
 const Service = require('../models/Service');
@@ -7,6 +8,11 @@ const Inquiry = require('../models/Inquiry');
 const Media = require('../models/Media');
 const sharp = require('sharp');
 const multer = require('multer');
+
+// Helper to check MongoDB connection
+const checkMongoConnection = () => {
+  return mongoose.connection.readyState === 1;
+};
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -170,10 +176,18 @@ exports.logout = (req, res) => {
 // ========== MEDIA LIBRARY ==========
 exports.getMedia = async (req, res) => {
   try {
-    const media = await Media.find().sort({ createdAt: -1 }).limit(50);
+    if (!checkMongoConnection()) {
+      return res.render('admin/media', {
+        title: 'Media Library',
+        media: [],
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
+    const media = await Media.find().sort({ createdAt: -1 }).limit(50).catch(() => []);
     res.render('admin/media', {
       title: 'Media Library',
-      media,
+      media: media || [],
     });
   } catch (error) {
     console.error('Media library error:', error);
@@ -185,6 +199,10 @@ exports.uploadMedia = [
   upload.array('images', 10),
   async (req, res) => {
     try {
+      if (!checkMongoConnection()) {
+        return res.status(500).json({ success: false, message: 'MongoDB not connected. Cannot upload media.' });
+      }
+      
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ success: false, message: 'No files uploaded' });
       }
@@ -227,7 +245,9 @@ exports.uploadMedia = [
           thumbnailSize: thumbnail.length,
         });
         
-        await media.save();
+        await media.save().catch(() => {
+          throw new Error('Failed to save media to database');
+        });
         uploadedMedia.push(media);
       }
       
@@ -241,7 +261,12 @@ exports.uploadMedia = [
 
 exports.deleteMedia = async (req, res) => {
   try {
-    await Media.findByIdAndDelete(req.params.id);
+    if (!checkMongoConnection()) {
+      return res.status(500).json({ success: false, message: 'MongoDB not connected' });
+    }
+    await Media.findByIdAndDelete(req.params.id).catch(() => {
+      throw new Error('Failed to delete media');
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Media delete error:', error);
@@ -252,10 +277,18 @@ exports.deleteMedia = async (req, res) => {
 // ========== SERVICES ==========
 exports.getServices = async (req, res) => {
   try {
-    const services = await Service.find().sort({ order: 1, createdAt: -1 });
+    if (!checkMongoConnection()) {
+      return res.render('admin/services', {
+        title: 'Services Management',
+        services: [],
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
+    const services = await Service.find().sort({ order: 1, createdAt: -1 }).catch(() => []);
     res.render('admin/services', {
       title: 'Services Management',
-      services,
+      services: services || [],
     });
   } catch (error) {
     console.error('Services error:', error);
@@ -265,7 +298,15 @@ exports.getServices = async (req, res) => {
 
 exports.getServiceForm = async (req, res) => {
   try {
-    const service = req.params.id ? await Service.findById(req.params.id) : null;
+    if (!checkMongoConnection()) {
+      return res.render('admin/service-form', {
+        title: 'Add Service',
+        service: null,
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
+    const service = req.params.id ? await Service.findById(req.params.id).catch(() => null) : null;
     res.render('admin/service-form', {
       title: service ? 'Edit Service' : 'Add Service',
       service,
@@ -278,6 +319,14 @@ exports.getServiceForm = async (req, res) => {
 
 exports.saveService = async (req, res) => {
   try {
+    if (!checkMongoConnection()) {
+      return res.render('admin/service-form', {
+        title: req.params.id ? 'Edit Service' : 'Add Service',
+        service: req.params.id ? { _id: req.params.id } : null,
+        error: 'MongoDB not connected. Cannot save service.',
+      });
+    }
+    
     const { name, description, icon, featured, order, active } = req.body;
     
     if (req.params.id) {
@@ -288,6 +337,8 @@ exports.saveService = async (req, res) => {
         featured: featured === 'on',
         order: parseInt(order) || 0,
         active: active === 'on',
+      }).catch(() => {
+        throw new Error('Failed to update service');
       });
     } else {
       await Service.create({
@@ -297,6 +348,8 @@ exports.saveService = async (req, res) => {
         featured: featured === 'on',
         order: parseInt(order) || 0,
         active: active === 'on',
+      }).catch(() => {
+        throw new Error('Failed to create service');
       });
     }
     
@@ -309,7 +362,12 @@ exports.saveService = async (req, res) => {
 
 exports.deleteService = async (req, res) => {
   try {
-    await Service.findByIdAndDelete(req.params.id);
+    if (!checkMongoConnection()) {
+      return res.status(500).json({ success: false, message: 'MongoDB not connected' });
+    }
+    await Service.findByIdAndDelete(req.params.id).catch(() => {
+      throw new Error('Failed to delete service');
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Delete service error:', error);
@@ -320,12 +378,21 @@ exports.deleteService = async (req, res) => {
 // ========== PROJECTS ==========
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await Project.find().sort({ order: 1, createdAt: -1 }).populate('images');
-    const media = await Media.find().sort({ createdAt: -1 });
+    if (!checkMongoConnection()) {
+      return res.render('admin/projects', {
+        title: 'Projects Management',
+        projects: [],
+        media: [],
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
+    const projects = await Project.find().sort({ order: 1, createdAt: -1 }).populate('images').catch(() => []);
+    const media = await Media.find().sort({ createdAt: -1 }).catch(() => []);
     res.render('admin/projects', {
       title: 'Projects Management',
-      projects,
-      media,
+      projects: projects || [],
+      media: media || [],
     });
   } catch (error) {
     console.error('Projects error:', error);
@@ -335,12 +402,21 @@ exports.getProjects = async (req, res) => {
 
 exports.getProjectForm = async (req, res) => {
   try {
-    const project = req.params.id ? await Project.findById(req.params.id).populate('images') : null;
-    const media = await Media.find().sort({ createdAt: -1 });
+    if (!checkMongoConnection()) {
+      return res.render('admin/project-form', {
+        title: 'Add Project',
+        project: null,
+        media: [],
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
+    const project = req.params.id ? await Project.findById(req.params.id).populate('images').catch(() => null) : null;
+    const media = await Media.find().sort({ createdAt: -1 }).catch(() => []);
     res.render('admin/project-form', {
       title: project ? 'Edit Project' : 'Add Project',
       project,
-      media,
+      media: media || [],
     });
   } catch (error) {
     console.error('Project form error:', error);
@@ -350,6 +426,15 @@ exports.getProjectForm = async (req, res) => {
 
 exports.saveProject = async (req, res) => {
   try {
+    if (!checkMongoConnection()) {
+      return res.render('admin/project-form', {
+        title: req.params.id ? 'Edit Project' : 'Add Project',
+        project: req.params.id ? { _id: req.params.id } : null,
+        media: [],
+        error: 'MongoDB not connected. Cannot save project.',
+      });
+    }
+    
     const { title, description, images, featured, order, seoTitle, seoDescription, active } = req.body;
     
     const imageIds = images ? (Array.isArray(images) ? images : [images]) : [];
@@ -364,6 +449,8 @@ exports.saveProject = async (req, res) => {
         seoTitle,
         seoDescription,
         active: active === 'on',
+      }).catch(() => {
+        throw new Error('Failed to update project');
       });
     } else {
       await Project.create({
@@ -375,6 +462,8 @@ exports.saveProject = async (req, res) => {
         seoTitle,
         seoDescription,
         active: active === 'on',
+      }).catch(() => {
+        throw new Error('Failed to create project');
       });
     }
     
@@ -387,7 +476,12 @@ exports.saveProject = async (req, res) => {
 
 exports.deleteProject = async (req, res) => {
   try {
-    await Project.findByIdAndDelete(req.params.id);
+    if (!checkMongoConnection()) {
+      return res.status(500).json({ success: false, message: 'MongoDB not connected' });
+    }
+    await Project.findByIdAndDelete(req.params.id).catch(() => {
+      throw new Error('Failed to delete project');
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Delete project error:', error);
@@ -398,12 +492,21 @@ exports.deleteProject = async (req, res) => {
 // ========== PRODUCTS ==========
 exports.getProducts = async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 }).populate('featuredImage');
-    const media = await Media.find().sort({ createdAt: -1 });
+    if (!checkMongoConnection()) {
+      return res.render('admin/products', {
+        title: 'Products Management',
+        products: [],
+        media: [],
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
+    const products = await Product.find().sort({ createdAt: -1 }).populate('featuredImage').catch(() => []);
+    const media = await Media.find().sort({ createdAt: -1 }).catch(() => []);
     res.render('admin/products', {
       title: 'Products Management',
-      products,
-      media,
+      products: products || [],
+      media: media || [],
     });
   } catch (error) {
     console.error('Products error:', error);
@@ -413,12 +516,21 @@ exports.getProducts = async (req, res) => {
 
 exports.getProductForm = async (req, res) => {
   try {
-    const product = req.params.id ? await Product.findById(req.params.id).populate('featuredImage') : null;
-    const media = await Media.find().sort({ createdAt: -1 });
+    if (!checkMongoConnection()) {
+      return res.render('admin/product-form', {
+        title: 'Add Product',
+        product: null,
+        media: [],
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
+    const product = req.params.id ? await Product.findById(req.params.id).populate('featuredImage').catch(() => null) : null;
+    const media = await Media.find().sort({ createdAt: -1 }).catch(() => []);
     res.render('admin/product-form', {
       title: product ? 'Edit Product' : 'Add Product',
       product,
-      media,
+      media: media || [],
     });
   } catch (error) {
     console.error('Product form error:', error);
@@ -428,6 +540,15 @@ exports.getProductForm = async (req, res) => {
 
 exports.saveProduct = async (req, res) => {
   try {
+    if (!checkMongoConnection()) {
+      return res.render('admin/product-form', {
+        title: req.params.id ? 'Edit Product' : 'Add Product',
+        product: req.params.id ? { _id: req.params.id } : null,
+        media: [],
+        error: 'MongoDB not connected. Cannot save product.',
+      });
+    }
+    
     const { name, description, price, sizes, featuredImage, seoTitle, seoDescription, active } = req.body;
     
     const sizesArray = sizes ? (typeof sizes === 'string' ? sizes.split(',').map(s => s.trim()) : sizes) : [];
@@ -442,6 +563,8 @@ exports.saveProduct = async (req, res) => {
         seoTitle,
         seoDescription,
         active: active === 'on',
+      }).catch(() => {
+        throw new Error('Failed to update product');
       });
     } else {
       await Product.create({
@@ -453,6 +576,8 @@ exports.saveProduct = async (req, res) => {
         seoTitle,
         seoDescription,
         active: active === 'on',
+      }).catch(() => {
+        throw new Error('Failed to create product');
       });
     }
     
@@ -465,7 +590,12 @@ exports.saveProduct = async (req, res) => {
 
 exports.deleteProduct = async (req, res) => {
   try {
-    await Product.findByIdAndDelete(req.params.id);
+    if (!checkMongoConnection()) {
+      return res.status(500).json({ success: false, message: 'MongoDB not connected' });
+    }
+    await Product.findByIdAndDelete(req.params.id).catch(() => {
+      throw new Error('Failed to delete product');
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Delete product error:', error);
@@ -476,12 +606,38 @@ exports.deleteProduct = async (req, res) => {
 // ========== SETTINGS ==========
 exports.getSettings = async (req, res) => {
   try {
-    const settings = await Settings.getSettings();
-    const media = await Media.find().sort({ createdAt: -1 });
+    let settings, media = [];
+    
+    if (checkMongoConnection()) {
+      try {
+        settings = await Settings.getSettings();
+        media = await Media.find().sort({ createdAt: -1 }).catch(() => []);
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        settings = {
+          companyName: 'Pool N Play',
+          companyAddress: '',
+          companyPhone: '',
+          companyEmail: '',
+          defaultSeoTitle: 'Pool N Play',
+          defaultSeoDescription: 'Pool services',
+        };
+      }
+    } else {
+      settings = {
+        companyName: 'Pool N Play',
+        companyAddress: '',
+        companyPhone: '',
+        companyEmail: '',
+        defaultSeoTitle: 'Pool N Play',
+        defaultSeoDescription: 'Pool services',
+      };
+    }
+    
     res.render('admin/settings', {
       title: 'Settings',
       settings,
-      media,
+      media: media || [],
       success: req.query.success === 'true',
     });
   } catch (error) {
@@ -492,6 +648,20 @@ exports.getSettings = async (req, res) => {
 
 exports.saveSettings = async (req, res) => {
   try {
+    if (!checkMongoConnection()) {
+      return res.render('admin/settings', {
+        title: 'Settings',
+        settings: {
+          companyName: 'Pool N Play',
+          companyAddress: '',
+          companyPhone: '',
+          companyEmail: '',
+        },
+        media: [],
+        error: 'MongoDB not connected. Cannot save settings.',
+      });
+    }
+    
     const settings = await Settings.getSettings();
     const {
       companyName,
@@ -538,14 +708,23 @@ exports.saveSettings = async (req, res) => {
 // ========== INQUIRIES ==========
 exports.getInquiries = async (req, res) => {
   try {
+    if (!checkMongoConnection()) {
+      return res.render('admin/inquiries', {
+        title: 'Recent Inquiries',
+        inquiries: [],
+        error: 'MongoDB not connected. Please configure MONGODB_URI.',
+      });
+    }
+    
     const inquiries = await Inquiry.find()
       .sort({ createdAt: -1 })
       .populate('productId')
-      .limit(100);
+      .limit(100)
+      .catch(() => []);
     
     res.render('admin/inquiries', {
       title: 'Recent Inquiries',
-      inquiries,
+      inquiries: inquiries || [],
     });
   } catch (error) {
     console.error('Inquiries error:', error);
@@ -555,7 +734,12 @@ exports.getInquiries = async (req, res) => {
 
 exports.deleteInquiry = async (req, res) => {
   try {
-    await Inquiry.findByIdAndDelete(req.params.id);
+    if (!checkMongoConnection()) {
+      return res.status(500).json({ success: false, message: 'MongoDB not connected' });
+    }
+    await Inquiry.findByIdAndDelete(req.params.id).catch(() => {
+      throw new Error('Failed to delete inquiry');
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Delete inquiry error:', error);
@@ -565,7 +749,12 @@ exports.deleteInquiry = async (req, res) => {
 
 exports.markInquiryRead = async (req, res) => {
   try {
-    await Inquiry.findByIdAndUpdate(req.params.id, { read: true });
+    if (!checkMongoConnection()) {
+      return res.status(500).json({ success: false, message: 'MongoDB not connected' });
+    }
+    await Inquiry.findByIdAndUpdate(req.params.id, { read: true }).catch(() => {
+      throw new Error('Failed to update inquiry');
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Mark inquiry read error:', error);
