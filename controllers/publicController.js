@@ -117,8 +117,8 @@ exports.getHome = async (req, res) => {
         .sort({ order: 1 })
         .limit(3)
         .catch(() => []);
-      featuredProjects = await Project.find({ featured: true, active: true })
-        .sort({ order: 1 })
+      featuredProjects = await Project.find({ active: true })
+        .sort({ createdAt: -1 })
         .limit(4)
         .populate('images')
         .catch(() => []);
