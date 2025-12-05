@@ -72,13 +72,21 @@
                                 </div>
                                 <% if (product.sizes && product.sizes.length > 0) { %>
                                     <div class="col-12">
-                                        <label class="form-label">Pool Sizes (Select all that apply)</label>
-                                        <select name="poolSizes" class="form-select" multiple size="<%= Math.min(product.sizes.length, 5) %>">
+                                        <label class="form-label mb-3">Pool Sizes (Select all that apply)</label>
+                                        <div class="size-tags-container mb-2">
                                             <% product.sizes.forEach(size => { %>
-                                                <option value="<%= size %>"><%= size %></option>
+                                                <button type="button" 
+                                                        class="btn size-tag-btn" 
+                                                        data-size="<%= size %>"
+                                                        onclick="toggleSizeTag(this)">
+                                                    <i class="bi bi-circle me-1"></i>
+                                                    <span><%= size %></span>
+                                                </button>
                                             <% }); %>
-                                        </select>
-                                        <small class="text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple sizes</small>
+                                        </div>
+                                        <small class="text-muted">Click sizes to select or deselect</small>
+                                        <!-- Hidden inputs to store selected sizes -->
+                                        <div id="selectedSizesInputs"></div>
                                     </div>
                                 <% } %>
                                 <div class="col-12">
@@ -98,6 +106,87 @@
         </div>
     </div>
 </section>
+
+<script>
+// Track selected sizes
+let selectedSizes = new Set();
+
+function toggleSizeTag(button) {
+    const size = button.getAttribute('data-size');
+    const icon = button.querySelector('i');
+    const sizeInputsContainer = document.getElementById('selectedSizesInputs');
+    
+    if (selectedSizes.has(size)) {
+        // Deselect
+        selectedSizes.delete(size);
+        button.classList.remove('btn-primary', 'active');
+        button.classList.add('btn-outline-primary');
+        icon.classList.remove('bi-check-circle-fill');
+        icon.classList.add('bi-circle');
+    } else {
+        // Select
+        selectedSizes.add(size);
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-primary', 'active');
+        icon.classList.remove('bi-circle');
+        icon.classList.add('bi-check-circle-fill');
+    }
+    
+    // Update hidden inputs
+    updateSizeInputs();
+}
+
+function updateSizeInputs() {
+    const container = document.getElementById('selectedSizesInputs');
+    if (!container) return;
+    
+    // Clear existing inputs
+    container.innerHTML = '';
+    
+    // Add hidden input for each selected size
+    selectedSizes.forEach(size => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'poolSizes';
+        input.value = size;
+        container.appendChild(input);
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateSizeInputs();
+});
+</script>
+
+<style>
+.size-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.size-tag-btn {
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: 2px solid;
+}
+
+.size-tag-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.size-tag-btn.active {
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.size-tag-btn i {
+    font-size: 0.875rem;
+}
+</style>
 
 <%- include('../partials/footer') %>
 

@@ -110,6 +110,7 @@ exports.getHome = async (req, res) => {
     
     let featuredServices = [];
     let featuredProjects = [];
+    let featuredProducts = [];
     let heroImage = null;
     
     // Log connection state for debugging
@@ -141,6 +142,16 @@ exports.getHome = async (req, res) => {
           });
         console.log(`Fetched ${featuredProjects.length} projects`);
         
+        featuredProducts = await Product.find({ active: true })
+          .sort({ createdAt: -1 })
+          .limit(4)
+          .populate('featuredImage')
+          .catch((err) => {
+            console.error('Error fetching products:', err.message);
+            return [];
+          });
+        console.log(`Fetched ${featuredProducts.length} products`);
+        
         if (settings.heroImage) {
           heroImage = await Media.findById(settings.heroImage).catch((err) => {
             console.error('Error fetching hero image:', err.message);
@@ -162,6 +173,7 @@ exports.getHome = async (req, res) => {
       settings,
       services: featuredServices,
       projects: featuredProjects,
+      products: featuredProducts,
       heroImage,
     });
   } catch (error) {

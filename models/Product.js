@@ -22,6 +22,10 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Media',
   },
+  images: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Media',
+  }],
   seoTitle: {
     type: String,
     trim: true,

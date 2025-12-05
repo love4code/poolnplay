@@ -538,7 +538,7 @@ exports.getProductForm = async (req, res) => {
       });
     }
     
-    const product = req.params.id ? await Product.findById(req.params.id).populate('featuredImage').catch(() => null) : null;
+    const product = req.params.id ? await Product.findById(req.params.id).populate('featuredImage').populate('images').catch(() => null) : null;
     const media = await Media.find().sort({ createdAt: -1 }).catch(() => []);
     res.render('admin/product-form', {
       title: product ? 'Edit Product' : 'Add Product',
@@ -562,9 +562,10 @@ exports.saveProduct = async (req, res) => {
       });
     }
     
-    const { name, description, price, sizes, featuredImage, seoTitle, seoDescription, active } = req.body;
+    const { name, description, price, sizes, featuredImage, images, seoTitle, seoDescription, active } = req.body;
     
     const sizesArray = sizes ? (typeof sizes === 'string' ? sizes.split(',').map(s => s.trim()) : sizes) : [];
+    const imagesArray = images ? (Array.isArray(images) ? images : [images]).filter(id => id) : [];
     
     if (req.params.id) {
       await Product.findByIdAndUpdate(req.params.id, {
@@ -573,6 +574,7 @@ exports.saveProduct = async (req, res) => {
         price: price ? parseFloat(price) : null,
         sizes: sizesArray,
         featuredImage: featuredImage || null,
+        images: imagesArray,
         seoTitle,
         seoDescription,
         active: active === 'on',
@@ -586,6 +588,7 @@ exports.saveProduct = async (req, res) => {
         price: price ? parseFloat(price) : null,
         sizes: sizesArray,
         featuredImage: featuredImage || null,
+        images: imagesArray,
         seoTitle,
         seoDescription,
         active: active === 'on',

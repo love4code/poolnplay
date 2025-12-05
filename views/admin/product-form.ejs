@@ -73,6 +73,38 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label class="form-label">Product Images</label>
+                        <div class="product-images-container">
+                            <!-- Hidden inputs to store selected image IDs -->
+                            <div id="selectedImagesInputs"></div>
+                            
+                            <!-- Selected Images Preview -->
+                            <div id="selectedImagesPreview" class="d-flex flex-wrap gap-2 mb-3">
+                                <% if (typeof product !== 'undefined' && product && product.images && product.images.length > 0) { %>
+                                    <% product.images.forEach(img => { %>
+                                        <div class="selected-image-item position-relative" data-image-id="<%= img._id %>">
+                                            <img src="<%= img.thumbnailDataUrl %>" 
+                                                 alt="<%= img.originalName %>" 
+                                                 style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 2px solid #0d6efd;">
+                                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 remove-image-btn" 
+                                                    style="width: 24px; height: 24px; padding: 0; line-height: 1; border-radius: 50%;">
+                                                <i class="bi bi-x" style="font-size: 12px;"></i>
+                                            </button>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <div class="text-muted small">No images selected</div>
+                                <% } %>
+                            </div>
+                            
+                            <!-- Select Images Button -->
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productImagesModal">
+                                <i class="bi bi-images"></i> Select Images
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
                         <div class="form-check">
                             <input type="checkbox" name="active" class="form-check-input" id="active" <%= typeof product !== 'undefined' && product && product.active !== false ? 'checked' : '' %>>
                             <label class="form-check-label" for="active">Active</label>
@@ -105,6 +137,65 @@
         </div>
     </div>
 </form>
+
+<!-- Product Images Picker Modal -->
+<div class="modal fade" id="productImagesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Product Images</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <input type="text" 
+                           class="form-control" 
+                           id="productImagesSearchInput" 
+                           placeholder="Search images by name...">
+                </div>
+                
+                <!-- Media Grid -->
+                <div class="media-library-grid" style="max-height: 500px; overflow-y: auto;">
+                    <div class="row g-2" id="productImagesGridContainer">
+                        <!-- Media items -->
+                        <% if (media && media.length > 0) { %>
+                            <% media.forEach(item => { %>
+                                <div class="col-md-3 col-sm-4 col-6 product-image-item-wrapper">
+                                    <div class="product-image-item card h-100 <%= typeof product !== 'undefined' && product && product.images && product.images.some(img => img._id.toString() === item._id.toString()) ? 'border-primary border-2' : '' %>" 
+                                         data-image-id="<%= item._id %>" 
+                                         data-image-name="<%= item.originalName.toLowerCase() %>"
+                                         style="cursor: pointer; transition: all 0.2s; position: relative;">
+                                        <div class="position-absolute top-0 end-0 m-2" style="display: none;">
+                                            <i class="bi bi-check-circle-fill text-primary" style="font-size: 1.5rem;"></i>
+                                        </div>
+                                        <img src="<%= item.thumbnailDataUrl %>" 
+                                             class="card-img-top" 
+                                             alt="<%= item.originalName %>" 
+                                             style="height: 120px; object-fit: cover;">
+                                        <div class="card-body p-2">
+                                            <p class="card-text small text-truncate mb-0" title="<%= item.originalName %>">
+                                                <%= item.originalName %>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="col-12">
+                                <p class="text-muted text-center">No media available. Upload images in the Media Library first.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmProductImagesSelection">Select Images</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Media Picker Modal -->
 <div class="modal fade" id="mediaPickerModal" tabindex="-1">
@@ -312,6 +403,148 @@ document.addEventListener('DOMContentLoaded', function() {
 document.querySelector('.media-picker-trigger').addEventListener('click', function(e) {
     e.preventDefault();
 });
+
+// ========== PRODUCT IMAGES MULTI-SELECT ==========
+let selectedProductImageIds = new Set();
+<% if (typeof product !== 'undefined' && product && product.images && product.images.length > 0) { %>
+    <% product.images.forEach(img => { %>
+        selectedProductImageIds.add('<%= img._id %>');
+    <% }); %>
+<% } %>
+
+// Store all media data for product images
+const productImagesData = {};
+<% if (media && media.length > 0) { %>
+    <% media.forEach(item => { %>
+productImagesData['<%= item._id %>'] = {
+    id: '<%= item._id %>',
+    name: '<%= item.originalName.replace(/'/g, "\\'") %>',
+    thumbnail: '<%= item.thumbnailDataUrl %>'
+};
+    <% }); %>
+<% } %>
+
+// Product images selection handler
+document.addEventListener('DOMContentLoaded', function() {
+    const productImageItems = document.querySelectorAll('.product-image-item');
+    const confirmProductImagesBtn = document.getElementById('confirmProductImagesSelection');
+    const productImagesSearchInput = document.getElementById('productImagesSearchInput');
+    const selectedImagesPreview = document.getElementById('selectedImagesPreview');
+    const selectedImagesInputs = document.getElementById('selectedImagesInputs');
+    
+    // Update preview based on selected IDs
+    function updateProductImagesPreview() {
+        selectedImagesInputs.innerHTML = '';
+        selectedImagesPreview.innerHTML = '';
+        
+        if (selectedProductImageIds.size === 0) {
+            selectedImagesPreview.innerHTML = '<div class="text-muted small">No images selected</div>';
+        } else {
+            selectedProductImageIds.forEach(imageId => {
+                if (productImagesData[imageId]) {
+                    // Add hidden input
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'images';
+                    hiddenInput.value = imageId;
+                    selectedImagesInputs.appendChild(hiddenInput);
+                    
+                    // Add preview
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'selected-image-item position-relative';
+                    previewItem.setAttribute('data-image-id', imageId);
+                    previewItem.innerHTML = `
+                        <img src="${productImagesData[imageId].thumbnail}" 
+                             alt="${productImagesData[imageId].name}" 
+                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 2px solid #0d6efd;">
+                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 remove-image-btn" 
+                                style="width: 24px; height: 24px; padding: 0; line-height: 1; border-radius: 50%;">
+                            <i class="bi bi-x" style="font-size: 12px;"></i>
+                        </button>
+                    `;
+                    selectedImagesPreview.appendChild(previewItem);
+                    
+                    // Add remove button handler
+                    previewItem.querySelector('.remove-image-btn').addEventListener('click', function() {
+                        selectedProductImageIds.delete(imageId);
+                        updateProductImagesPreview();
+                        updateProductImagesSelection();
+                    });
+                }
+            });
+        }
+    }
+    
+    // Update visual selection in modal
+    function updateProductImagesSelection() {
+        productImageItems.forEach(item => {
+            const imageId = item.getAttribute('data-image-id');
+            const checkIcon = item.querySelector('.bi-check-circle-fill');
+            
+            if (selectedProductImageIds.has(imageId)) {
+                item.classList.add('border-primary', 'border-2');
+                if (checkIcon) checkIcon.parentElement.style.display = 'block';
+            } else {
+                item.classList.remove('border-primary', 'border-2');
+                if (checkIcon) checkIcon.parentElement.style.display = 'none';
+            }
+        });
+    }
+    
+    // Click handler for product image items
+    productImageItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const imageId = this.getAttribute('data-image-id');
+            
+            if (selectedProductImageIds.has(imageId)) {
+                selectedProductImageIds.delete(imageId);
+            } else {
+                selectedProductImageIds.add(imageId);
+            }
+            
+            updateProductImagesSelection();
+        });
+    });
+    
+    // Confirm selection
+    confirmProductImagesBtn.addEventListener('click', function() {
+        updateProductImagesPreview();
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('productImagesModal'));
+        if (modal) {
+            modal.hide();
+        }
+    });
+    
+    // Search functionality
+    productImagesSearchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const imageWrappers = document.querySelectorAll('.product-image-item-wrapper');
+        
+        imageWrappers.forEach(wrapper => {
+            const imageItem = wrapper.querySelector('.product-image-item');
+            const imageName = imageItem.getAttribute('data-image-name') || '';
+            
+            if (imageName.includes(searchTerm)) {
+                wrapper.style.display = '';
+            } else {
+                wrapper.style.display = 'none';
+            }
+        });
+    });
+    
+    // Reset selection when modal is opened
+    document.getElementById('productImagesModal').addEventListener('show.bs.modal', function() {
+        updateProductImagesSelection();
+        productImagesSearchInput.value = '';
+        // Show all items
+        document.querySelectorAll('.product-image-item-wrapper').forEach(w => w.style.display = '');
+    });
+    
+    // Initialize preview on page load
+    updateProductImagesPreview();
+});
 </script>
 
 <style>
@@ -339,6 +572,31 @@ document.querySelector('.media-picker-trigger').addEventListener('click', functi
 
 .media-library-grid::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+.product-image-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.product-image-item.border-primary {
+    border-width: 2px !important;
+}
+
+.selected-image-item {
+    transition: transform 0.2s;
+}
+
+.selected-image-item:hover {
+    transform: scale(1.05);
+}
+
+.remove-image-btn {
+    opacity: 0.8;
+}
+
+.remove-image-btn:hover {
+    opacity: 1;
 }
 </style>
 
