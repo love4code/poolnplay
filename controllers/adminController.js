@@ -51,16 +51,41 @@ exports.getLogin = (req, res) => {
 
 exports.postLogin = async (req, res) => {
   const { username, password } = req.body;
-  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   
-  if (username === adminUsername && password === adminPassword) {
+  // Get admin credentials from environment variables
+  // Trim whitespace in case there are accidental spaces
+  const adminUsername = (process.env.ADMIN_USERNAME || 'admin').trim();
+  const adminPassword = (process.env.ADMIN_PASSWORD || 'admin123').trim();
+  
+  // Debug logging (only in development)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Login attempt:', {
+      providedUsername: username,
+      providedPasswordLength: password ? password.length : 0,
+      expectedUsername: adminUsername,
+      expectedPasswordLength: adminPassword ? adminPassword.length : 0,
+      usernameMatch: username === adminUsername,
+      passwordMatch: password === adminPassword,
+    });
+  }
+  
+  // Check if credentials match
+  if (username && password && username.trim() === adminUsername && password === adminPassword) {
     req.session.isAdmin = true;
-    res.redirect('/admin');
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.render('admin/login', {
+          title: 'Admin Login',
+          error: 'Session error. Please try again.',
+        });
+      }
+      res.redirect('/admin');
+    });
   } else {
     res.render('admin/login', {
       title: 'Admin Login',
-      error: 'Invalid credentials',
+      error: 'Invalid username or password',
     });
   }
 };

@@ -7,6 +7,49 @@ const Inquiry = require('../models/Inquiry');
 const Media = require('../models/Media');
 const nodemailer = require('nodemailer');
 
+// Helper function to get settings with fallback
+const getSettingsSafe = async () => {
+  if (mongoose.connection.readyState !== 1) {
+    return {
+      companyName: 'Pool N Play',
+      companyAddress: '',
+      companyPhone: '',
+      companyEmail: '',
+      facebook: '',
+      instagram: '',
+      twitter: '',
+      linkedin: '',
+      youtube: '',
+      defaultSeoTitle: 'Pool N Play - Professional Pool Installation & Services',
+      defaultSeoDescription: 'Expert pool installation, liner replacement, and pool services.',
+      primaryColor: '#0d6efd',
+      secondaryColor: '#6c757d',
+      heroImage: null,
+    };
+  }
+  try {
+    return await Settings.getSettings();
+  } catch (error) {
+    console.error('Error getting settings:', error);
+    return {
+      companyName: 'Pool N Play',
+      companyAddress: '',
+      companyPhone: '',
+      companyEmail: '',
+      facebook: '',
+      instagram: '',
+      twitter: '',
+      linkedin: '',
+      youtube: '',
+      defaultSeoTitle: 'Pool N Play - Professional Pool Installation & Services',
+      defaultSeoDescription: 'Expert pool installation, liner replacement, and pool services.',
+      primaryColor: '#0d6efd',
+      secondaryColor: '#6c757d',
+      heroImage: null,
+    };
+  }
+};
+
 // Email transporter setup
 const createTransporter = () => {
   return nodemailer.createTransport({
@@ -63,49 +106,34 @@ const sendInquiryEmail = async (inquiryData) => {
 // Home page
 exports.getHome = async (req, res) => {
   try {
-    // Check if MongoDB is connected
-    if (mongoose.connection.readyState !== 1) {
-      console.error('MongoDB not connected. ReadyState:', mongoose.connection.readyState);
-      // Render with default values if MongoDB not connected
-      const defaultSettings = {
-        companyName: 'Pool N Play',
-        defaultSeoTitle: 'Pool N Play - Professional Pool Installation & Services',
-        defaultSeoDescription: 'Expert pool installation, liner replacement, and pool services.',
-        primaryColor: '#0d6efd',
-        secondaryColor: '#6c757d',
-      };
-      return res.render('public/home', {
-        title: defaultSettings.defaultSeoTitle,
-        description: defaultSettings.defaultSeoDescription,
-        settings: defaultSettings,
-        services: [],
-        projects: [],
-        heroImage: null,
-      });
-    }
-
-    const settings = await Settings.getSettings();
-    const featuredServices = await Service.find({ featured: true, active: true })
-      .sort({ order: 1 })
-      .limit(3)
-      .catch(() => []);
-    const featuredProjects = await Project.find({ featured: true, active: true })
-      .sort({ order: 1 })
-      .limit(4)
-      .populate('images')
-      .catch(() => []);
+    const settings = await getSettingsSafe();
     
+    let featuredServices = [];
+    let featuredProjects = [];
     let heroImage = null;
-    if (settings.heroImage) {
-      heroImage = await Media.findById(settings.heroImage).catch(() => null);
+    
+    if (mongoose.connection.readyState === 1) {
+      featuredServices = await Service.find({ featured: true, active: true })
+        .sort({ order: 1 })
+        .limit(3)
+        .catch(() => []);
+      featuredProjects = await Project.find({ featured: true, active: true })
+        .sort({ order: 1 })
+        .limit(4)
+        .populate('images')
+        .catch(() => []);
+      
+      if (settings.heroImage) {
+        heroImage = await Media.findById(settings.heroImage).catch(() => null);
+      }
     }
     
     res.render('public/home', {
       title: settings.defaultSeoTitle,
       description: settings.defaultSeoDescription,
       settings,
-      services: featuredServices || [],
-      projects: featuredProjects || [],
+      services: featuredServices,
+      projects: featuredProjects,
       heroImage,
     });
   } catch (error) {
@@ -117,7 +145,7 @@ exports.getHome = async (req, res) => {
 // About page
 exports.getAbout = async (req, res) => {
   try {
-    const settings = await Settings.getSettings();
+    const settings = await getSettingsSafe();
     res.render('public/about', {
       title: 'About Us - Pool N Play',
       description: 'Learn about Pool N Play and our commitment to quality pool services.',
@@ -132,7 +160,7 @@ exports.getAbout = async (req, res) => {
 // Contact page
 exports.getContact = async (req, res) => {
   try {
-    const settings = await Settings.getSettings();
+    const settings = await getSettingsSafe();
     res.render('public/contact', {
       title: 'Contact Us - Pool N Play',
       description: 'Get in touch with Pool N Play for all your pool installation and service needs.',
@@ -147,10 +175,15 @@ exports.getContact = async (req, res) => {
 // Products list page
 exports.getProducts = async (req, res) => {
   try {
-    const settings = await Settings.getSettings();
-    const products = await Product.find({ active: true })
-      .sort({ createdAt: -1 })
-      .populate('featuredImage');
+    const settings = await getSettingsSafe();
+    
+    let products = [];
+    if (mongoose.connection.readyState === 1) {
+      products = await Product.find({ active: true })
+        .sort({ createdAt: -1 })
+        .populate('featuredImage')
+        .catch(() => []);
+    }
     
     res.render('public/products', {
       title: 'Our Products - Pool N Play',
@@ -167,8 +200,13 @@ exports.getProducts = async (req, res) => {
 // Single product page
 exports.getProduct = async (req, res) => {
   try {
-    const settings = await Settings.getSettings();
-    const product = await Product.findById(req.params.id).populate('featuredImage');
+    const settings = await getSettingsSafe();
+    
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(404).render('error', { error: 'Product not found', title: '404' });
+    }
+    
+    const product = await Product.findById(req.params.id).populate('featuredImage').catch(() => null);
     
     if (!product || !product.active) {
       return res.status(404).render('error', { error: 'Product not found', title: '404' });
@@ -189,10 +227,15 @@ exports.getProduct = async (req, res) => {
 // Portfolio page
 exports.getPortfolio = async (req, res) => {
   try {
-    const settings = await Settings.getSettings();
-    const projects = await Project.find({ active: true })
-      .sort({ order: 1, createdAt: -1 })
-      .populate('images');
+    const settings = await getSettingsSafe();
+    
+    let projects = [];
+    if (mongoose.connection.readyState === 1) {
+      projects = await Project.find({ active: true })
+        .sort({ order: 1, createdAt: -1 })
+        .populate('images')
+        .catch(() => []);
+    }
     
     res.render('public/portfolio', {
       title: 'Our Portfolio - Pool N Play',
@@ -219,6 +262,33 @@ exports.submitInquiry = async (req, res) => {
       });
     }
     
+    // Check MongoDB connection
+    if (mongoose.connection.readyState !== 1) {
+      // Still try to send email even if MongoDB is down
+      try {
+        await sendInquiryEmail({
+          name,
+          town,
+          phone,
+          email,
+          service,
+          poolSizes: poolSizes ? (Array.isArray(poolSizes) ? poolSizes : [poolSizes]) : [],
+          message: message || '',
+          productName: null,
+        });
+        return res.json({ 
+          success: true, 
+          message: 'Thank you! Your inquiry has been received. We will contact you soon.' 
+        });
+      } catch (emailError) {
+        console.error('Email send error:', emailError);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Unable to submit inquiry at this time. Please try again later or contact us directly.' 
+        });
+      }
+    }
+    
     // Create inquiry
     const inquiry = new Inquiry({
       name,
@@ -236,7 +306,7 @@ exports.submitInquiry = async (req, res) => {
     // Get product name if productId exists
     let productName = null;
     if (productId) {
-      const product = await Product.findById(productId);
+      const product = await Product.findById(productId).catch(() => null);
       if (product) productName = product.name;
     }
     

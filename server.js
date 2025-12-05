@@ -15,16 +15,29 @@ if (!process.env.MONGODB_URI) {
   console.warn('WARNING: MONGODB_URI not set. Using default local MongoDB.');
 }
 
-mongoose.connect(mongoUri)
+// Configure mongoose to not crash on connection errors
+mongoose.set('strictQuery', false);
+
+// Connect with options to handle errors gracefully
+mongoose.connect(mongoUri, {
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+  socketTimeoutMS: 45000,
+})
 .then(() => {
   console.log('MongoDB connected successfully');
   console.log('Database:', mongoose.connection.name);
 })
 .catch(err => {
   console.error('MongoDB connection error:', err.message);
+  console.error('Error code:', err.code);
+  if (err.code === 'ENOTFOUND') {
+    console.error('DNS lookup failed. Check your MongoDB connection string.');
+    console.error('Your connection string should look like:');
+    console.error('mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/database');
+  }
   console.error('Make sure MONGODB_URI is set correctly in your environment variables.');
-  // Don't crash the app, but log the error
-  // The app will still start, but database operations will fail
+  console.error('The app will continue running, but database operations will fail.');
+  // Don't crash the app - let it continue without MongoDB
 });
 
 // Middleware
@@ -34,20 +47,41 @@ app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Session configuration
-const sessionStore = MongoStore.create({
-  mongoUrl: mongoUri,
-  touchAfter: 24 * 3600, // lazy session update
-});
+// Use memory store if MongoDB connection string is invalid or missing
+let sessionStore = null;
 
-sessionStore.on('error', (error) => {
-  console.error('Session store error:', error);
-});
+// Only use MongoDB store if we have a valid connection string
+if (process.env.MONGODB_URI && process.env.MONGODB_URI.includes('mongodb')) {
+  try {
+    sessionStore = MongoStore.create({
+      mongoUrl: mongoUri,
+      touchAfter: 24 * 3600, // lazy session update
+      ttl: 24 * 60 * 60, // 24 hours
+    });
+
+    sessionStore.on('error', (error) => {
+      console.error('Session store error:', error.message);
+      console.warn('Sessions will be stored in memory instead');
+    });
+
+    sessionStore.on('connect', () => {
+      console.log('Session store connected to MongoDB');
+    });
+  } catch (error) {
+    console.error('Failed to create MongoDB session store:', error.message);
+    console.warn('Using memory store for sessions');
+    sessionStore = null;
+  }
+} else {
+  console.warn('MONGODB_URI not set or invalid. Using memory store for sessions.');
+  console.warn('Note: Sessions will be lost on app restart.');
+}
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
-  store: sessionStore,
+  store: sessionStore, // null = memory store
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
@@ -86,8 +120,26 @@ app.use((req, res) => {
   });
 });
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Promise Rejection:', err.message);
+  console.error('Stack:', err.stack);
+  // Don't exit - let the app continue
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message);
+  console.error('Stack:', err.stack);
+  // Don't exit - let the app continue
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  if (!process.env.MONGODB_URI || !process.env.MONGODB_URI.includes('mongodb')) {
+    console.warn('⚠️  MONGODB_URI not properly configured. Some features may not work.');
+  }
 });
 
