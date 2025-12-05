@@ -114,17 +114,11 @@ exports.postLogin = async (req, res) => {
         console.log('Login successful! Session saved.');
         console.log('Session ID after save:', req.sessionID);
         console.log('Session isAdmin:', req.session.isAdmin);
-        console.log('Setting cookie...');
         
-        // Force cookie to be set
-        res.cookie('poolnplay.sid', req.sessionID, {
-          maxAge: 1000 * 60 * 60 * 24,
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-        });
-        
-        res.redirect('/admin');
+        // Redirect after a small delay to ensure session is saved
+        setTimeout(() => {
+          res.redirect('/admin');
+        }, 100);
       });
     } else {
       console.log('Login failed: Credentials do not match');
