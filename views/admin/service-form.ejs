@@ -19,8 +19,16 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Bootstrap Icon Class *</label>
-                        <input type="text" name="icon" class="form-control" value="<%= typeof service !== 'undefined' && service ? service.icon : '' %>" placeholder="e.g., bi-pool, bi-tools, bi-water" required>
-                        <small class="text-muted">Browse icons at <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a></small>
+                        <div class="input-group">
+                            <input type="text" name="icon" id="iconInput" class="form-control" value="<%= typeof service !== 'undefined' && service ? service.icon : '' %>" placeholder="e.g., bi-pool, bi-tools, bi-water" required>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#iconPickerModal">
+                                <i class="bi bi-search"></i> Browse Icons
+                            </button>
+                        </div>
+                        <small class="text-muted">Click "Browse Icons" to search and select an icon</small>
+                        <div id="selectedIconPreview" class="mt-2" style="display: none;">
+                            <strong>Preview:</strong> <i id="previewIcon" class="bi" style="font-size: 2rem;"></i>
+                        </div>
                     </div>
                     
                     <div class="row">
@@ -55,6 +63,165 @@
         </div>
     </div>
 </form>
+
+<!-- Icon Picker Modal -->
+<div class="modal fade" id="iconPickerModal" tabindex="-1" aria-labelledby="iconPickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="iconPickerModalLabel">Select Bootstrap Icon</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" id="iconSearch" class="form-control" placeholder="Search icons...">
+                </div>
+                <div id="iconGrid" class="row g-2" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Icons will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Bootstrap Icons list (common icons)
+const bootstrapIcons = [
+    'alarm', 'alarm-fill', 'app', 'archive', 'arrow-down', 'arrow-left', 'arrow-right', 'arrow-up',
+    'award', 'bag', 'bag-check', 'bag-fill', 'basket', 'basket-fill', 'bell', 'bell-fill',
+    'book', 'bookmark', 'bookmark-fill', 'box', 'box-arrow-down', 'box-arrow-up', 'briefcase',
+    'building', 'calendar', 'calendar-check', 'calendar-event', 'camera', 'card-checklist',
+    'cart', 'cart-check', 'cart-fill', 'chat', 'check', 'check-circle', 'check-square',
+    'clock', 'clock-fill', 'cloud', 'cloud-download', 'cloud-upload', 'collection', 'credit-card',
+    'cup', 'database', 'diagram', 'diamond', 'display', 'download', 'envelope', 'envelope-fill',
+    'eye', 'file', 'file-earmark', 'file-text', 'filter', 'flag', 'folder', 'gear', 'geo-alt',
+    'gift', 'graph-up', 'grid', 'hammer', 'hand-thumbs-up', 'heart', 'heart-fill', 'house',
+    'image', 'images', 'info-circle', 'key', 'lightbulb', 'link', 'list', 'lock', 'map',
+    'megaphone', 'menu-button', 'moon', 'palette', 'paperclip', 'pencil', 'people', 'person',
+    'phone', 'pie-chart', 'pin', 'play', 'play-circle', 'plus', 'plus-circle', 'printer',
+    'question-circle', 'save', 'search', 'send', 'server', 'shield', 'shield-check', 'shop',
+    'star', 'star-fill', 'sun', 'tag', 'tags', 'telephone', 'tools', 'trash', 'trophy',
+    'truck', 'upload', 'water', 'wrench', 'x', 'x-circle', 'zoom-in', 'zoom-out',
+    // Pool and water related
+    'droplet', 'droplet-fill', 'snow', 'thermometer', 'wind', 'umbrella', 'tree', 'flower1',
+    // Service related
+    'wrench-adjustable', 'wrench-adjustable-circle', 'nut', 'gear-fill', 'tools', 'hammer',
+    'screwdriver', 'paint-bucket', 'brush', 'bucket', 'droplet-half', 'water', 'pool',
+    // Additional useful icons
+    'activity', 'award-fill', 'badge', 'battery', 'battery-full', 'bell', 'bookmark-star',
+    'box-seam', 'briefcase-fill', 'building', 'calculator', 'camera-fill', 'card-heading',
+    'chat-dots', 'chat-fill', 'clipboard', 'clipboard-check', 'clipboard-data', 'collection-play',
+    'cpu', 'diagram-2', 'diagram-3', 'display-fill', 'easel', 'easel-fill', 'egg', 'emoji-smile',
+    'file-earmark-check', 'file-earmark-code', 'file-earmark-image', 'file-earmark-pdf',
+    'fire', 'flag-fill', 'folder-fill', 'folder-open', 'gear-fill', 'geo-alt-fill',
+    'gift-fill', 'globe', 'graph-down', 'grid-3x3', 'hand-index', 'hand-thumbs-down',
+    'house-door', 'house-fill', 'image-fill', 'inbox', 'journal', 'journal-text', 'lamp',
+    'lamp-fill', 'layers', 'lightning', 'lightning-fill', 'mailbox', 'mailbox2', 'megaphone-fill',
+    'moon-fill', 'music-note', 'music-player', 'palette-fill', 'paperclip', 'patch-check',
+    'patch-check-fill', 'pencil-fill', 'pencil-square', 'people-fill', 'person-check',
+    'person-fill', 'phone-fill', 'phone-landscape', 'pie-chart-fill', 'pin-fill', 'play-fill',
+    'plus-square', 'postage', 'postage-fill', 'printer-fill', 'question-circle-fill',
+    'save-fill', 'search', 'send-fill', 'server', 'shield-fill', 'shield-lock', 'shop-window',
+    'star-half', 'sun-fill', 'tag-fill', 'telephone-fill', 'thermometer-half', 'trophy-fill',
+    'truck-flatbed', 'upload', 'water', 'wifi', 'wrench', 'x-square', 'zoom-in', 'zoom-out'
+];
+
+let filteredIcons = [...bootstrapIcons];
+
+function renderIcons(icons) {
+    const grid = document.getElementById('iconGrid');
+    grid.innerHTML = '';
+    
+    if (icons.length === 0) {
+        grid.innerHTML = '<div class="col-12 text-center text-muted">No icons found</div>';
+        return;
+    }
+    
+    icons.forEach(iconName => {
+        const col = document.createElement('div');
+        col.className = 'col-2 col-md-1';
+        col.style.cursor = 'pointer';
+        col.innerHTML = `
+            <div class="border rounded p-3 text-center icon-item" data-icon="bi-${iconName}" title="bi-${iconName}">
+                <i class="bi bi-${iconName}" style="font-size: 1.5rem;"></i>
+                <div class="small mt-1 text-truncate">${iconName}</div>
+            </div>
+        `;
+        
+        col.addEventListener('click', function() {
+            selectIcon(`bi-${iconName}`);
+        });
+        
+        col.addEventListener('mouseenter', function() {
+            this.querySelector('.icon-item').style.backgroundColor = '#f0f0f0';
+        });
+        
+        col.addEventListener('mouseleave', function() {
+            this.querySelector('.icon-item').style.backgroundColor = '';
+        });
+        
+        grid.appendChild(col);
+    });
+}
+
+function selectIcon(iconClass) {
+    document.getElementById('iconInput').value = iconClass;
+    document.getElementById('previewIcon').className = `bi ${iconClass}`;
+    document.getElementById('selectedIconPreview').style.display = 'block';
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('iconPickerModal'));
+    modal.hide();
+}
+
+// Search functionality
+document.getElementById('iconSearch').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    filteredIcons = bootstrapIcons.filter(icon => 
+        icon.toLowerCase().includes(searchTerm)
+    );
+    renderIcons(filteredIcons);
+});
+
+// Initialize icons when modal is shown
+document.getElementById('iconPickerModal').addEventListener('show.bs.modal', function() {
+    filteredIcons = [...bootstrapIcons];
+    renderIcons(filteredIcons);
+    document.getElementById('iconSearch').value = '';
+});
+
+// Update preview when icon input changes manually
+document.getElementById('iconInput').addEventListener('input', function(e) {
+    const iconClass = e.target.value.trim();
+    if (iconClass) {
+        document.getElementById('previewIcon').className = `bi ${iconClass}`;
+        document.getElementById('selectedIconPreview').style.display = 'block';
+    } else {
+        document.getElementById('selectedIconPreview').style.display = 'none';
+    }
+});
+
+// Initialize preview if icon already exists
+document.addEventListener('DOMContentLoaded', function() {
+    const iconInput = document.getElementById('iconInput');
+    if (iconInput.value) {
+        document.getElementById('previewIcon').className = `bi ${iconInput.value}`;
+        document.getElementById('selectedIconPreview').style.display = 'block';
+    }
+});
+</script>
+
+<style>
+#iconGrid .icon-item {
+    transition: all 0.2s;
+}
+
+#iconGrid .icon-item:hover {
+    background-color: #e9ecef !important;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
 
 <%- include('partials/admin-footer') %>
 

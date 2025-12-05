@@ -47,8 +47,13 @@
                 </div>
             </div>
             <hr class="bg-white">
-            <div class="text-center">
+            <div class="text-center" id="footerCopyright">
                 <p>&copy; <%= new Date().getFullYear() %> Pool N Play. All rights reserved.</p>
+                <p class="mb-0">
+                    <a href="/admin/login" class="text-white text-decoration-none">
+                        <i class="bi bi-shield-lock"></i> Admin Login
+                    </a>
+                </p>
             </div>
         </div>
     </footer>
@@ -57,8 +62,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Form submission handler
+        // Form submission handler and affiliate text insertion
         document.addEventListener('DOMContentLoaded', function() {
+            // Insert affiliate text in footer
+            const footerCopyright = document.getElementById('footerCopyright');
+            if (footerCopyright) {
+                const affiliateText = document.createElement('p');
+                affiliateText.className = 'mb-2 text-white-50';
+                affiliateText.style.fontSize = '0.9rem';
+                affiliateText.innerHTML = 'Affiliate of <strong>Aquarian Pool and Spa</strong>';
+                footerCopyright.insertBefore(affiliateText, footerCopyright.querySelector('p:last-of-type'));
+            }
+            
+            // Form submission handler
             const forms = document.querySelectorAll('.inquiry-form');
             forms.forEach(form => {
                 form.addEventListener('submit', async function(e) {

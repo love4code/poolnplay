@@ -6,10 +6,7 @@ const Product = require('../models/Product');
 const Project = require('../models/Project');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/poolnplay', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/poolnplay')
 .then(() => {
   console.log('MongoDB connected for seeding');
   seedDatabase();
