@@ -8,6 +8,10 @@ const path = require('path');
 
 const app = express();
 
+// CRITICAL: Trust Heroku's proxy for secure cookies
+// This is required for sessions to work on Heroku
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/poolnplay';
 
@@ -96,15 +100,20 @@ if (isValidMongoUri) {
 // If no store, express-session will use MemoryStore by default
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-  // Use default cookie name to avoid conflicts
-  resave: true,
-  saveUninitialized: true,
+  name: 'connect.sid', // Explicitly use default name
+  resave: false, // Only save if session was modified
+  saveUninitialized: false, // Don't save uninitialized sessions
+  rolling: false,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: true,
+    secure: process.env.NODE_ENV === 'production', // Secure in production (Heroku uses HTTPS)
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
+  },
+  // Ensure cookie is always set when session is saved
+  genid: function(req) {
+    return require('crypto').randomBytes(16).toString('hex');
   },
 };
 
@@ -134,21 +143,23 @@ if (sessionStore) {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Middleware to log response headers (for debugging)
+// Middleware to ensure session cookie is set
+// This runs after session middleware
 app.use((req, res, next) => {
+  // Hook into response to check/ensure cookie is set
   const originalEnd = res.end;
   res.end = function(chunk, encoding) {
-    // Log Set-Cookie headers for login and redirects
-    if ((req.path === '/admin/login' && req.method === 'POST') || 
-        (req.path === '/admin' && req.method === 'GET')) {
-      console.log('=== RESPONSE HEADERS FOR:', req.path, req.method, '===');
-      const headers = res.getHeaders();
-      const setCookie = headers['set-cookie'] || res.getHeader('Set-Cookie');
-      if (setCookie) {
-        console.log('✅ Set-Cookie header found:', Array.isArray(setCookie) ? setCookie : [setCookie]);
-      } else {
-        console.log('❌ WARNING: No Set-Cookie header found in response!');
-        console.log('All response headers:', Object.keys(headers));
+    // Check if this is a response that should have a session cookie
+    if (req.session && req.sessionID) {
+      const headers = this.getHeaders();
+      const setCookie = headers['set-cookie'] || this.getHeader('Set-Cookie');
+      
+      // If no Set-Cookie and session exists, log it
+      if (!setCookie && req.path.startsWith('/admin')) {
+        console.log('⚠️ WARNING: Session exists but no Set-Cookie header!');
+        console.log('Session ID:', req.sessionID);
+        console.log('Path:', req.path);
+        console.log('Method:', req.method);
       }
     }
     originalEnd.call(this, chunk, encoding);

@@ -29,15 +29,42 @@ router.get('/test-session', (req, res) => {
 router.get('/test-set-session', (req, res) => {
   req.session.isAdmin = true;
   req.session.test = 'This is a test';
+  
+  console.log('=== TEST SET SESSION ===');
+  console.log('Session ID before save:', req.sessionID);
+  console.log('Session data before save:', req.session);
+  
+  // Mark session as modified
+  req.session.touch();
+  
   req.session.save((err) => {
     if (err) {
+      console.error('Session save error:', err);
       return res.json({ error: 'Session save failed', err: err.message });
     }
+    
+    console.log('Session saved. ID:', req.sessionID);
+    
+    // Check response headers AFTER save but BEFORE sending response
+    // Use a hook to check headers when response is sent
+    const originalEnd = res.end;
+    res.end = function(chunk, encoding) {
+      const headers = this.getHeaders();
+      console.log('=== RESPONSE BEING SENT ===');
+      console.log('All headers:', Object.keys(headers));
+      if (headers['set-cookie']) {
+        console.log('✅ Set-Cookie header:', headers['set-cookie']);
+      } else {
+        console.log('❌ Set-Cookie header MISSING in response!');
+      }
+      originalEnd.call(this, chunk, encoding);
+    };
+    
     res.json({
       success: true,
       sessionID: req.sessionID,
       session: req.session,
-      message: 'Session set. Now visit /admin/test-session to check if it persists.',
+      message: 'Session set. Check logs for Set-Cookie header. Then visit /admin/test-session.',
     });
   });
 });
